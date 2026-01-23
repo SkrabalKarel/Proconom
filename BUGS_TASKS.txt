@@ -1,0 +1,468 @@
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27333/
+Layouts.Select(x => x.TypLayout).ToList()
+Count = 6
+    [0]: "Uzivatele_DgUzivateleAdminColumns"
+    [1]: "Utvary_DgTendersRequirementsColumns"
+    [2]: "CDB_DgCDBColumns"
+    [3]: "StavDenikSectionControl_DockSD"
+    [4]: "DokumentyWidgetControl_lvDokumentySlozky_1"
+    [5]: "ToDo_DgToDoColumns_02_10_2025"
+
+Uzivatele_DgUzivateleAdminColumns
+
+C:\Users\karel.skrabal\source\repos\Proconom\eConoM\Moduly\Admin\UserProfileSettings\UserProfileSettingsWindow.xaml.cs
+ln 473
+public void SerializeGrid()
+
+
+
+-----------------------------------------------------------------------------------------------------
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27599/
+strPolickoJePovinne
+
+C:\Users\karel.skrabal\source\repos\Proconom\eConoM\ProconomSections\StavDenikSectionControl.xaml
+ln1215
+clmLideJmeno
+clmLideJmenoSD
+
+ln1576
+
+
+-------------------------------------------------------------------------------------------------------
+
+********************************************************-
+Refactoring SectionControl.xaml.cs
+https://chatgpt.com/share/69688a36-43a4-8006-8846-7df03023cdc7
+*******************************************************-
+
+-------------------------------------------------------------------------------------------------------
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27098/
+
+ucUtvarDetail.xaml
+ln2675
+<Button Grid.Column="1"
+
+ln2583
+<Grid Grid.Row="2" Margin="32,0,12,0">
+
+cisRezijniNaklad
+tbNovyNakladCena
+tbNovyNakladmnozstvi
+tbRok
+strPresneDatum
+
+-------------------------------------------------------------------------------------------------------
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27494/
+Tady jsem skončil ... ln560
+public async Task SetDataToDashboard(ProconomApi.GetDashboardDataResponse data, StavbaDTO stavba) v ....
+C:\Users\karel.skrabal\source\repos\Proconom\eConoM\Stavby\Detaily\ucStavbaDashboardMD.xaml.cs
+
+
+C:\Users\karel.skrabal\source\repos\Proconom\eConoM\Stavby\Detaily\ucStavbaDashboardMD.xaml.cs
+public async Task GetDashboardTiles(int stavbaId)
+
+
+ucStavbaDashboardMD line 279, 421, 541 ... tyto sekce jsou natvrdo!!!!
+
+Other dashboard elements (tiles, buttons like OpenBIM) are:
+Shown / hidden based on:
+permissions
+module availability
+project phase (Fáze stavby)
+
+last prompt
+the enum is defined here, is not it a compiled file or something?
+
+regarding ProconomApiClient adding new items to enum .... DashboardTileType
+
+-----
+prompt to keep the tread :
+
+CONTEXT SNAPSHOT — DashboardTileType / Rozpočet / Měření
+Problem
+
+We need Rozpočet and Měření sections (ListViewItems) in a legacy WPF dashboard to behave exactly like btnOpenBIM:
+
+correct visibility at startup
+
+reacts to refresh
+
+respects dashboard user settings
+
+no DataContext dependency
+
+no restart required
+
+behavior preservation (no rewrite)
+
+Existing architecture facts
+
+App is legacy WPF, code-behind heavy
+
+Dashboard visibility is controlled by:
+
+DashboardTileType
+
+DashBoardTileSetting
+
+GetModuleRights(DashboardTileType)
+
+ReloadTiles(...)
+
+btnOpenBIM uses dashboard tile logic, NOT maPravoCist, NOT DataContext
+
+maPravoCist(...) is section-level security and must stay in click handlers only
+
+Refresh (btnRefresh) already updates dashboard tiles correctly
+
+Critical constraint
+
+DashboardTileType currently lives in ProconomApiClient.cs
+→ this file is NSwag-generated
+→ MUST NOT be edited (changes would be overwritten)
+
+Key conclusion (agreed)
+
+Rozpočet & Měření must behave like dashboard tiles
+
+Therefore they must NOT depend on DataContext or Stavba
+
+Visibility must come from the same source of truth as btnOpenBIM
+
+Generated API enums must not be extended
+
+Architectural decision
+
+DO NOT modify ProconomApiClient.cs or any NSwag-generated enum.
+
+Instead:
+
+Introduce or use a UI-owned dashboard enum (e.g. DashboardTileTypeUi)
+
+OR introduce a mapping layer between API tile types and UI features
+
+Reuse existing dashboard pipeline:
+
+settings → tiles → GetModuleRights(...) → refresh
+
+Bind ListView visibility to this dashboard logic
+
+Keep maPravoCist(...) only in MouseDown / action logic
+
+Explicit non-goals
+
+No MVVM rewrite
+
+No Dispatcher hacks
+
+No DataContext-based visibility
+
+No editing generated code
+
+No duplication of permission logic
+
+Open design task (next step)
+
+Decide how to extend dashboard logic without touching NSwag code, e.g.:
+
+UI-level enum wrapping API enum
+
+Dictionary mapping API DashboardTileType → UI features
+
+Adapter/helper around GetModuleRights
+
+-----
+
+
+C:\Users\karel.skrabal\source\repos\Proconom\eConoM\SharedControls\UserRigthsWindow.xaml.cs
+foreach (UserRightsDC item in res.SectionPermissions.Where(x => x.TypSekce != ProconomApi.TYP_SEKCE.STATISTIKY && x.TypSekce != ProconomApi.TYP_SEKCE.UDRZBA).ToList())
+
+ln 1400 .... double click event example
+
+
+private bool TryOpenMeasure()
+
+     if (TryOpenMeasure())
+         return;
+     if (TryOpenBudget())
+         return;
+
+        private SingleInstanceService? _singleInstanceService;
+        private SingleInstanceService SingleInstanceService => _singleInstanceService ??= Resolver.Resolve<SingleInstanceService>();
+
+-------------------------------------------------------------------------------------------------------
+
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27536/
+
+a classic WPF nested ScrollViewer + MouseWheel routing conflict
+
+Correct design rule (key insight) :
+Inner ScrollViewer should scroll first
+Outer ListView should scroll only if inner cannot
+
+The error is caused by this line being executed when the visual tree is NOT ready yet:
+
+this.AddHandler(
+    UIElement.MouseWheelEvent,
+    new MouseWheelEventHandler(OnGlobalMouseWheel),
+    handledEventsToo: true);
+
+
+In WPF, calling AddHandler in a Window constructor before the visual tree is fully created can throw a NullReferenceException during build/XAML compilation, which Visual Studio reports as:
+
+Unknown build error
+
+This is a known WPF/XAML quirk, especially with:
+
+code-behind event wiring
+
+third-party controls
+
+compiled XAML (.g.cs)
+
+
+
+1466
+WorkFlowReporting.xaml
+
+1330 listview
+
+
+-------------------------------------------------------------------------------------------------------------------------------
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27504/
+
+
+
+7.2. do 15 hod
+8.2. nemohu
+14.2. mohu od 15 hodin
+15.2. mohu kdykoliv
+21.2.
+
+
+------------------------------------------------------------------------------------------------------------------------------
+
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/26994/
+
+
+DataGridTemplateColumn with header defined like Header="{x:Static p:Resources.strSpolecnost}" user control CiselnikButtonBox is used
+I need to show this control immediatly when ucObjektDetail.xaml is opened. At this moment user has to click to that cell to make 
+CiselnikButtonBox visible. How to change it? If you need I can provide you with other neccessary files, just ask
+
+-----------------------------------------------------------------------------------------------------------------------------    
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27530                                    
+
+
+<sharedControls:ToggleButtonAsync x:Name="tgbtnAlwaysInherit"
+                                                                          Grid.Column="1"
+                                                                          Margin="8,8,12,8"
+                                                                          VerticalAlignment="Center"
+                                                                          CheckedAsync="tgbtnAlwaysInherit_CheckedAsync"
+                                                                          Content="{md:PackIcon Kind=ContentCopy, Size=24}"
+                                                                          IsChecked="{Binding InheritPermissions}"
+                                                                          Style="{StaticResource MaterialDesignFlatToggleButton}"
+                                                                          ToolTip="{x:Static p:Resources.strVsechnyPodslozkyDediOpravneni}"
+                                                                          UncheckedAsync="tgbtnAlwaysInherit_UncheckedAsync" />
+
+
+                                        <sharedControls:ToggleButtonAsync x:Name="tgbtnAlwaysInherit"
+                                                                          Grid.Column="1"
+                                                                          Margin="8,8,12,8"
+                                                                          VerticalAlignment="Center"
+                                                                          CheckedAsync="tgbtnAlwaysInherit_CheckedAsync"
+                                                                          IsChecked="{Binding InheritPermissions}"
+                                                                          ToolTip="{x:Static p:Resources.strVsechnyPodslozkyDediOpravneni}"
+                                                                          UncheckedAsync="tgbtnAlwaysInherit_UncheckedAsync">
+                                            <sharedControls:ToggleButtonAsync.Content>
+                                                <md:PackIcon Kind="ContentCopy">
+                                                    <md:PackIcon.Style>
+                                                        <Style TargetType="md:PackIcon">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=sharedControls:ToggleButtonAsync}}" Value="True">
+                                                                    <Setter Property="Foreground" Value="Red"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </md:PackIcon.Style>
+                                                </md:PackIcon>
+                                            </sharedControls:ToggleButtonAsync.Content>
+                                        </sharedControls:ToggleButtonAsync>
+
+
+------------------------------------------------------------------------------------------------------------------
+
+
+C:\Users\karel.skrabal\source\repos\Proconom\eConoM\Moduly\Workflow\ApplyWorkflow\Views\ApplyWorkflowControl.xaml.cs
+ln225
+                        SharedControls.MessageWindow.Dialog.Show(Properties.Resources.strNemateVyplnenouOdpovednouOsoburoli);
+
+
+
+Desktop - WF - Při aplikování WF v posledním kroku když se nastaví předpokládaný termín spuštění na dnešní datum je varování že je datum nastaven do minulosti.
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/26130/
+
+Dokumenty -> 1.1.3. Test dokument.pdf -> pravé tl. menu Zahájit workflow -> Dokument
+frm Zahájit workflow Vyberte šablonu k zahájení 
+
+
+
+
+--------------------------------------------------------------------------------------------------------------
+
+Desktop- Administrátor- Práva na sekce- nemám práva na BOZP a stejně se do něj dostanu
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/26978/
+AA -> Administrátor -> frm Nastavení Uživatele -> 2xclick položka uživatele v gridu
+-> frm Detail Uživatele -> Práva do sekcí --- odkliknout BOZP -> uložit
+Manažer staveb (základní okno) -> vybrat stavbu -> SD 2xclick -> frm Stavební deník zakázky
+- vlevo nahoře Sekce -> vysouvací frm Sekce obsahuje a dovoluje otevřít BOZP
+
+
+SectionControl.xaml.cs .... App.Login.PravaModuly.IsBOZPAllowed
+
+Due to operator precedence (&& binds tighter than ||), this is evaluated as:
+if ((App.Login.PravaModuly.IsBOZPAllowed && MaPravoCist(TYP_MODUL.BOZP)) || true)
+Result: The condition is ALWAYS TRUE because of || true
+
+
+ln1425
+                                    <RadioButton x:Name="mbBOZP"
+
+class MultiValueVisibilityAndConverter : IMultiValueConverter
+
+
+System.Windows.Data Warning: 17 : Cannot get 'Item[]' value (type 'UserRightsDC') from 'Prava' (type 'List`1'). BindingExpression:Path=Prava[13].Cteni; DataItem='App' (HashCode=21913016); target element is 'RadioButton' (Name='mbBOZP'); target property is 'Visibility' (type 'Visibility') ArgumentOutOfRangeException:'System.ArgumentOutOfRangeException: Zadaný argument je mimo rozsah platných hodnot.
+Název parametru: index'
+
+App.xaml.cs
+App.Prava
+public static List<ProconomApi.UserRightsDC> Prava
+{
+    get; set;
+}
+
+
+UserRigthsWindow.xaml.cs
+private async Task Uloz() ... hodnoty checkboxu se správně inicializují  z LoginSetupDesktopResponse
+
+
+
+
+-----------------------------------------------------------------------------------------------
+
+
+Desktop - SD - Pracovníci/Mechanizace/Materiály u některých položek lze sloupec zmenšit natolik, že obsah zmizí.
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_backlogs/backlog/PROCONOM%20Team/Stories/?workitem=27410
+4 hod 7.1.
+
+C:\Users\karel.skrabal\source\repos\Proconom\eConoM\ProconomSections\SectionControl.xaml.cs
+C:\Users\karel.skrabal\source\repos\Proconom\eConoM\ProconomSections\StavDenikSectionControl.xaml
+
+namespace DataGridFilterLibrary
+{
+    public class DataGridColumnExtensions
+
+
+ln1214
+StavDenikSectionControl.xaml
+
+                <DataGridTextColumn MinWidth="120"
+                                    filter:DataGridColumnExtensions.IsCaseSensitiveSearch="False"
+                                    Binding="{Binding Znacka}"
+                                    Header="{x:Static p:Resources.strOznaceni}"
+                                    IsReadOnly="True">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextAlignment" Value="Center" />
+                            <Setter Property="VerticalAlignment" Value="Center" />
+                            <Setter Property="HorizontalAlignment" Value="Left" />
+                            <Setter Property="Margin" Value="12,0" />
+                            <Setter Property="Foreground" Value="#373737" />
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+public class VisibilityToWidthConverter : IValueConverter
+
+---------------------------------------------------------------------------------
+
+Desktop - Práva dokumentů - vyhledávání skupin - hledat i podle značky 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27228
+6.1. 1 hod
+menu AA -> Administrátor
+btn Práva dokumentů -> frm Nastavení skupin
+btn + Vytvořit skupinu -> vyplnit značka & název
+txtBox Hledat ... vyhledává jen ve string "název", požaduje se vyhledávání ve 
+stringu "značka" OR "název"
+
+namespace proconom.Admin.GroupManager
+public class GroupManagerContext : BaseObservableObject
+        private void UpdatePermisionEntities() { PermissionEntities = GetPermisionEntities(UseUsers ? FetchUser : FetchGroup); }
+        private TrueObservableCollection<BasePermissionEntity> GetPermisionEntities(Func<BasePermissionEntity, bool> filter)
+        {
+            if (OriginalPermissionEntities is null)
+                return null;
+            if (!OriginalPermissionEntities.Any())
+                return new();
+            return new(OriginalPermissionEntities.Where(filter));
+        }
+
+
+v těchto 2 metodách se filtruje buď na přetypování a když tak pak na propertu Name,SurName (pro User)
+nebo na Name (DocumentGroup) musí se přidat ShowableName properta pro objekt typu DocumentGroup!!!!
+-----------------------------------------------------------------------------------
+
+Desktop- Administrátor- odstranit informaci o přesunu práv na dokumenty
+2 hod 6.1.
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/26977/
+menu AA -> Administrátor
+2xclick v gridu Přehled uživatelů -> otevře se detail uživatele
+odstranit frame Nastavení práv dokumentů se přesunulo!
+místo něj zarovnat stávající frame Telefon
+
+-----------------------------------------------------------------------------------
+
+Desktop- Uživatelské nastavení- v malém okně se nevejde text do pole
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/26971
+2 hod 6.1.
+26971
+Desktop- Uživatelské nastavení- v malém okně se nevejde text do pole
+
+menu AA -> uživatelské nastavení ...... ucGlobalNastaveni.xaml (další výskyt bor:BorderHintOutline userControl je v ...
+UserRigthsWindow.xaml otevřeš přes menu AA -> Administrátor 2xclick v gridu Přehled uživatelů -> otevře se detail uživatele )
+
+Frame Docházka,
+doplnit zalamování dlouhých textů 
+
+
+ucGlobalNastaveni.xaml
+        <bor:BorderHintOutline Grid.Row="3"
+                               Grid.Column="0"
+                               Height="60"
+                               Margin="0,0,15,18"
+                               HorizontalAlignment="Stretch"
+                               VerticalAlignment="Top"
+                               HorizontalContentAlignment="Stretch"
+                               HintText="{x:Static p:Resources.strDochazkaH}"
+                               Template="{StaticResource borderTemplate}">
+            <CheckBox Margin="8,0,0,0"
+                      Background="{StaticResource brMaterialRed}"
+                      Content="{x:Static p:Resources.strOtevritModulDochazkyPriSpusteni}"
+                      IsChecked="{Binding Path=PravaAkce.OpenDochazkaFirst, Source={x:Static Application.Current}}" />
+        </bor:BorderHintOutline>
+
+
+UserRigthsWindow.xaml  proconom.SharedControls.UserRigthsWindow
+ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
+			proconom.Stavby.UcGlobalNastaveni
+
+-----------------------------------------------------------------------------------
+triggery, copie stylu
+nový styl
+podědin od stylu
+
