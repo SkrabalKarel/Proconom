@@ -1,3 +1,10 @@
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27527/
+
+I need to search values in the ComboBox x:Name="cbConstructions" in GroupManagerWindow.xaml to be able to find containing substrings 
+not only startingWith substring as it behaves now. So, searching change from look StartWith to Contains way
+
+--------------------------------------------------------------------------------------------------------
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27333/
 Layouts.Select(x => x.TypLayout).ToList()
 Count = 6
@@ -465,4 +472,5 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
