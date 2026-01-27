@@ -1,3 +1,39 @@
+--------------------------------------------------------------------------------------------
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27602/
+
+SectionControl.xaml
+private void dtpDateChooser_SelectedDateChanged(object sender, SelectionChangedEventArgs e)
+dtpDateChooser
+
+
+git checkout develop
+# Show the commit that's ahead of remote
+git log origin/develop..develop
+
+# See the actual changes in that commit
+git show HEAD
+
+# Or see a summary
+git log --oneline origin/develop..develop
+git reset --hard origin/develop
+git status
+```
+
+**Expected output:**
+```
+On branch develop
+Your branch is up to date with 'origin/develop'.
+
+nothing to commit, working tree clean
+
+
+---------------------------------------------------------------------------------------------
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27409/
+private async Task NactiStrom()
+
+---------------------------------------------------------------------------------------------
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27815/
 
@@ -27,6 +63,7 @@ SMELLS :
 ---------
 C:\Users\karel.skrabal\Documents\Test1\27815_ucZBVDetail_SMELL.pdf
 file:///C:/Users/karel.skrabal/Documents/GroupManagerWindow_SMELL.pdf
+file:///C:/Users/karel.skrabal/Documents/SectionControl_SMELL.pdf
 
 
 
@@ -507,6 +544,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
