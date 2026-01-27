@@ -1,3 +1,20 @@
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27273/
+
+práva na šablony musí zůstat konzistentní
+checkBox ... Správa procesů workflow .... toto je to právo
+
+PROCONOM udělat normálně UI
+
+v TestApi vytvořit controller , handler
+inspirovat se Tomíkem
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_git/Test_Nove_API/pullrequest/16650?path=/TestApi/v1/Modules/ToDoList/Handlers/UpdateToDoChecklistItemHandler.cs
+
+verze nswag NEMĚNIT!!!!!
+nswag ne update
+
+
+
 --------------------------------------------------------------------------------------------
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27602/
@@ -544,6 +561,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
