@@ -23,7 +23,10 @@ and is not sufficiently visible. Font should stay black.
 		<Setter Property="Foreground" Value="Black" />
 
 
-file:///C:/Users/karel.skrabal/Documents/27815_SMELL.pdf
+SMELLS :
+---------
+C:\Users\karel.skrabal\Documents\Test1\27815_ucZBVDetail_SMELL.pdf
+file:///C:/Users/karel.skrabal/Documents/GroupManagerWindow_SMELL.pdf
 
 
 
@@ -504,6 +507,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
