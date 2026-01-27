@@ -1,3 +1,35 @@
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27815/
+
+písmo v gridu je bílé a na bílém podkladu není vidět
+
+ucZBVDetail.xaml
+dgPrilohy
+<DataGridTextColumn Width="120"
+                    Binding="{Binding PocetListu, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                    Header="{x:Static p:Resources.strPocetListuH}">
+
+
+
+Prompt :
+in ucZBVDetail.xaml is dgPrilohy, in it strPocetListuH header. If I click into this field to edit the actual value, text font color changes from black to white
+and is not sufficiently visible. Font should stay black.
+
+<DataGridTextColumn.CellStyle>
+<Style TargetType="{x:Type DataGridCell}">
+	<Setter Property="Foreground" Value="#FFAAAAAA" />
+<DataGridTextColumn.EditingElementStyle>
+	<Style TargetType="{x:Type TextBox}">
+		<Setter Property="Foreground" Value="Black" />
+
+
+file:///C:/Users/karel.skrabal/Documents/27815_SMELL.pdf
+
+
+
+
+--------------------------------------------------------------------------------------------------------
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27527/
 
 I need to search values in the ComboBox x:Name="cbConstructions" in GroupManagerWindow.xaml to be able to find containing substrings 
@@ -472,5 +504,6 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
