@@ -13,7 +13,23 @@ https://tfs-server.proconom.local/ProconomSW/PROCONOM/_git/Test_Nove_API/pullreq
 verze nswag NEMĚNIT!!!!!
 nswag ne update
 
+UserRigthsWindow.xaml
+strSpravaProcesuWF    .... tento checkbox rozhoduje o tom, jesti bude povolena editace jména a popisu
 
+ButtonEditWorkFlow_Click mu
+
+prompt:
+
+based od true/false value of strSpravaProcesuWF in UserRigthsWindow.xaml button PencilOutline (Click="ButtonEditWorkFlow_Click") in WinWorkFlowCreate.xaml must
+be disabled/enabled. 
+
+
+nové resource
+
+msgChybyOpravneniSablony
+Nemáte oprávnění pro úpravu šablon.
+msgChybaAktualizaceSablony
+Chyba při aktualizaci šablony
 
 --------------------------------------------------------------------------------------------
 
@@ -561,6 +577,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
