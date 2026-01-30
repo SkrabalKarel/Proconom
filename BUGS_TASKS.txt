@@ -1,3 +1,18 @@
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27831/
+
+
+jak implementovat oprávnění na uživatele
+
+            int claimantId = _claimResolver.ResolveInt(System.Security.Claims.ClaimTypes.NameIdentifier);
+            CUzivatele claimant = _ctx.CUzivatele.Include(x => x.CUzivateleOpravneni).SingleOrDefault(x => x.XId == claimantId)
+                ?? throw new BadDataException(_translateService.Translate("common.userDoesNotExist"));
+
+            if (!claimant.CUzivateleOpravneni.SpravaSablonWf)
+                throw new ForbiddenException(_translateService.Translate("workflow.nemateOpravneniNaUpravuJmenaSablony"));
+
+
+rozhraní na requestu IRequestEntity implementovat jenom tehdy když funkcionalita má vazbu na
+konkrétní stavbu
 
 -----------------------------------------------------------------------------------------------
 
@@ -610,6 +625,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
