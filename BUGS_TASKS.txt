@@ -1,3 +1,9 @@
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27493/
+UserRigthsWindow.xaml
+
+--------------------------------------------------------------------------------------------
+
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27831/
 
 
@@ -625,6 +631,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
