@@ -1,4 +1,37 @@
 
+-----------------------------------------------------------------------------------------------
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27322/
+--------------
+rule of thumb
+--------------
+
+The diagnostic output reveals the real problem: The S key event never reaches your Window_KeyDown handler!
+What's Happening:
+
+✅ You press Ctrl → Event fires (e.Key: LeftCtrl)
+❌ You press S → No event fired at Window level!
+👉 The NumericTextBox (or RozpocetSectionSeznam) is consuming the event before it bubbles up
+
+Solution: Use PreviewKeyDown Instead
+WPF has two keyboard event types:
+
+PreviewKeyDown → Tunnels DOWN (Window → Child) - fires first
+KeyDown → Bubbles UP (Child → Window) - fires last
+
+The issue is binding update timing. When you press Ctrl+S:
+
+PreviewKeyDown fires BEFORE the textbox commits its value
+The control still has focus and hasn't triggered LostFocus
+The binding hasn't updated yet
+You're saving the old value from the binding
+
+When you click the button:
+Button click causes textbox to lose focus
+LostFocus triggers binding update
+Then the save happens with the new value
+
+-----------------------------------------------------------------------------------------------
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27273/
 
 práva na šablony musí zůstat konzistentní
@@ -577,6 +610,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
