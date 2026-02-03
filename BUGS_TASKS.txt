@@ -1,3 +1,20 @@
+
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/22993/
+
+project AdForge_React
+
+Node.js = prostředí pro spouštění JavaScriptu mimo prohlížeč
+npm = správce balíčků (přichází automaticky s Node.js)
+
+VScode cmd .. 
+C:\Users\karel.skrabal\source\repos\AdForge_React\client> musíš být v této složce, tady je package.json
+tady lze spustit npm install
+
+
+----------------------------------------------------------------------------------------------
+
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27493/
 UserRigthsWindow.xaml
 
@@ -631,6 +648,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
