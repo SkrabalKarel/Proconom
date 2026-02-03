@@ -11,6 +11,16 @@ VScode cmd ..
 C:\Users\karel.skrabal\source\repos\AdForge_React\client> musíš být v této složce, tady je package.json
 tady lze spustit npm install
 
+spustit TestAPI, PROCONOM UI, AzureFunctions
+F5 VScode .... spuštění
+
+v této metodě je skládání URL
+CEFProcessHelper.cs
+public static ucForgeViewShowable InitDMSForgeMultipleModels(Window win, Guid guid, Guid guidOkno, int KodStavba, List<int> kodVerze, VIEWER_OPEN_TYPE openType)
+
+SQL databáze
+ProconomMaster -> tabulka c_databaze_nastaveni -> pole typ_nakladani_modelu == 2 je OK nevím proč, má to nějaký vliv na to jestli se za překlady platí
+
 
 ----------------------------------------------------------------------------------------------
 
@@ -648,6 +658,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
