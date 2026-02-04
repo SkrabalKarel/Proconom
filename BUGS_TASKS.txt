@@ -26,6 +26,24 @@ public static ucForgeViewShowable InitDMSForgeMultipleModels(Window win, Guid gu
 SQL databáze
 ProconomMaster -> tabulka c_databaze_nastaveni -> pole typ_nakladani_modelu == 2 je OK nevím proč, má to nějaký vliv na to jestli se za překlady platí
 
+upřesnění zadání
+vybrat víc dokumentů v seznamu dokumentů (to je podmínka pro zobrazení nové položky menu) .... nová položka menu otevřít aktuální verze a nesmezaná (inspirovat se jako položka menu asi "Přeložit model aktualní verze",umí vybrat aktuální poslední nesmazané verze), 
+kružítko spustí zobrazovač s více soubory....zadefinonvat input jak je popsané v US
+
+to stejné potom udělat pro verze souboru... úplně stejný princip
+
+funkcionalita funguje na webu
+
+
+Debuggovací kód .... DokumentyWidgetControl.xaml.cs ln 1654
+#if DEBUG
+                            foreach (var doc in selectedDocs)
+                            {
+                                System.Diagnostics.Debug.WriteLine(
+                                    $"nazev: {doc.AktualniVerze?.Nazev},isModel: {doc.AktualniVerze?.IsModel}, forgeUrn: {doc.AktualniVerze?.ForgeUrn}");
+                            }
+#endif
+
 
 ----------------------------------------------------------------------------------------------
 
@@ -663,6 +681,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
