@@ -1,3 +1,7 @@
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27402/
+
+
 ----------------------------------------------------------------------------------------------------
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/22993/
@@ -659,6 +663,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
