@@ -1,4 +1,36 @@
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27761/
+
+
+Data nastavení v proconomu
+Manažer Staveb -> Nastavení stavby -> Rozpočet -> (vlevo dole) sdružení ... nastavit združení
+Manažer Staveb -> (dlaždice) Prostavěnost -> (Widget napravo) icona s lupou Hledat zjišťovací protokol -> (contextové menu) Přiřadit zhotovitele
+
+
+WidgetZP.xaml
+                        <MenuItem x:Name="btnZhotovit"
+                                  Click="BtnZhotovit_Click"
+                                  Header="{x:Static p:Resources.strPriraditZhotovitele}"
+                                  Style="{StaticResource MaterialDesignMenuItem}">
+
+Jak zjistit, že stavba má sdružení?
+
+ZPSectionDetail.xaml.cs
+HlavniForm.Nastaveni.Sdruzeni
+
+prompt:
+
+
+
+private async void UserControl_Loaded(object sender, RoutedEventArgs e)  opens WidgetZP.xaml, visibility of context menu item with Header="{x:Static p:Resources.strPriraditZhotovitele}"
+must depened on HlavniForm.Nastaveni.Sdruzeni is null or not. Context menu item strPriraditZhotovitele show only when HlavniForm.Nastaveni.Sdruzeni is not null. Simply saying when ZPSectionDetail.xaml
+is opening or refreshing ProconomApi.StavbaNastaveniDC contains for actual "Stavba" record that contains ProconomApi.SdruzeniDC. How to control visibility depending on ProconomApi.SdruzeniDC?
+
+ via ToggleButton x:Name="btnHledejZP" button is opened frm WidgetZPPol.xaml containing scf:SfDataGrid x:Name="dgZP" context menu on the row
+of this grid opens context menu    
+
+----------------------------------------------------------------------------------------------------
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27402/
 
 
@@ -681,6 +713,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
