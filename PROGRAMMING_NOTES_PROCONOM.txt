@@ -19,6 +19,28 @@ proconom project is a classic WPF code-behind approach, with some MVVM elements 
 •	Maintainability: Separation of concerns makes code easier to manage.
 •	Scalability: Easier to add features and refactor.
 
+-------------------------
+Output console from PROCONOM UI
+-------------------------
+from this text :
+Request finished HTTP/1.1 POST http://localhost:5001/api/ProstavenostDesktop/VratZPProWidget - 200 - application/json;+charset=utf-8 96.0924ms
+
+I can find after creating any window or doing some operation in UI that endpoint VratZPProWidget was called!!!!!!!
+
+┌─────────────┐                           ┌──────────────────┐
+│   WPF UI    │  HTTP POST Request        │   ASP.NET Core   │
+│  (Client)   │ ─────────────────────────>│    Web API       │
+│             │                           │  localhost:5001  │
+│             │  JSON Response (200 OK)   │                  │
+│             │ <─────────────────────────│                  │
+└─────────────┘      96ms round-trip      └──────────────────┘
+                                                    │
+                                                    │ Query
+                                                    ▼
+                                           ┌──────────────────┐
+                                           │   SQL Server     │
+                                           │    Database      │
+                                           └──────────────────┘
 
 -------------------------
 Rozdíl mezi xxxSD a xxx na frm
@@ -237,4 +259,5 @@ Concrete file
 ----------
 Given this WPF Window, identify architectural smells
 and propose a step-by-step refactor without breaking behavior.
+
 
