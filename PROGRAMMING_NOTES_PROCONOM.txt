@@ -139,25 +139,10 @@ dashboard layout
 ChatGPT notes
 --------------
 
-ChatGPT does not remember your solution across chats
-Proven “senior” workflow (summary)
-
-ChatGPT
----------
-Analyze
-Design
-Decide
-
-You
-------
-Validate architecture
-Decide refactoring scope
-
-Copilot
--------
-Execute
-Generate
-Accelerate
+to send changes made View -> Terminal
+git diff file1 > diff.txt
+set complete path
+upload diff.txt to chatGPT
 
 ChatGPT prompts:
 ----------------
@@ -259,5 +244,6 @@ Concrete file
 ----------
 Given this WPF Window, identify architectural smells
 and propose a step-by-step refactor without breaking behavior.
+
 
 
