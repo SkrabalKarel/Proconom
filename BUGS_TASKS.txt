@@ -1,3 +1,27 @@
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/26913
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28031/
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28032/
+
+
+branch develop_26913_ksk_ActiveUsers
+
+TADY JE POSTUP JAK ROZŠÍŘIT API A UI !!!!!!!!!!!!!!!!!!!!
+
+
+databáze Data_Develop tabulka c_uzivatele .. pole aktivni
+
+API
+GetStavbaUsersPermissionsHandler
+mapping .... UserPermissionProfile
+zavolat nswang !!!!
+
+UI PROCONOM
+ApiConverter ... ručně přidat novou položku
+
+
+
+
 ----------------------------------------------------------------------------------------------------
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/26831/
@@ -733,6 +757,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
