@@ -1,4 +1,16 @@
 
+----------------------------------------------------------------------------------------------------
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27763/
+
+Items 
+Header="{x:Static p:Resources.strMJ}"
+Header="{x:Static p:Resources.strJOC}"
+do not show any values, even they have some, why
+
+----------------------------------------------------------------------------------------------------
+
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27761/
 
 
@@ -713,6 +725,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
