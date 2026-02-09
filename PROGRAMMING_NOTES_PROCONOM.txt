@@ -163,7 +163,7 @@ Constraints:
 - Do NOT change external behavior
 - Prefer Strategy, services, and interfaces for behavior
 - Avoid massive XAML or MVVM rewrites
-- Refactor in small, safe steps
+- Refactor only if need to complete the actual task, do it in small, safe steps
 
 Task:
 - Analyze architectural smells
@@ -244,6 +244,7 @@ Concrete file
 ----------
 Given this WPF Window, identify architectural smells
 and propose a step-by-step refactor without breaking behavior.
+
 
 
 
