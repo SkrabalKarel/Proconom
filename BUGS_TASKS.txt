@@ -1,3 +1,11 @@
+----------------------------------------------------------------------------------------------------
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/26831/
+
+strSpravovatStitky
+
+Upravit/založit štítek
+
 
 ----------------------------------------------------------------------------------------------------
 
@@ -725,6 +733,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
