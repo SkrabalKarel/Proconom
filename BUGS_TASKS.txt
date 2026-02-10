@@ -1,4 +1,23 @@
 
+----------------------------------------------------------------------------------------------------
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27990/
+
+LostFocus="TextBox_ScrollToStart"
+TextAlignment="Left"
+
+private void TextBox_ScrollToStart(object sender, RoutedEventArgs e)
+{
+    if (sender is TextBox tb)
+    {
+        tb.CaretIndex = 0;
+        tb.ScrollToHome();
+    }
+}
+
+----------------------------------------------------------------------------------------------------
+
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/26913
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28031/
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28032/
@@ -757,6 +776,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
