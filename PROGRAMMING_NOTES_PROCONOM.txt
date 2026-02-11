@@ -2,6 +2,7 @@
 FreeCommander knowledge
 -------------------------
 copy file name only to clipboard ... Alt+Shift+Ins
+copy file name + path to clipboard ... Alt+Ins
 
 -------------------------
 PROBLEMS!!!
@@ -270,6 +271,7 @@ Concrete file
 ----------
 Given this WPF Window, identify architectural smells
 and propose a step-by-step refactor without breaking behavior.
+
 
 
 
