@@ -1,6 +1,11 @@
+-------------------------
+FreeCommander knowledge
+-------------------------
+copy file name only to clipboard ... Alt+Shift+Ins
 
+-------------------------
 PROBLEMS!!!
-
+-------------------------
 A true MVVM approach would separate UI logic into ViewModels and minimize code-behind, using commands and property bindings. Here, business logic and UI logic are mixed in the UserControl, which is more typical of a traditional WPF application without a formal architectural pattern.
 Used correctly, ChatGPT becomes your architectural brain, and Copilot becomes your fast hands.
 
@@ -265,6 +270,7 @@ Concrete file
 ----------
 Given this WPF Window, identify architectural smells
 and propose a step-by-step refactor without breaking behavior.
+
 
 
 
