@@ -325,7 +325,7 @@ C:\Users\karel.skrabal\source\repos\Proconom\eConoM\Moduly\Admin\UserProfileSett
 ln 473
 public void SerializeGrid()
 
-
+"C:\Users\karel.skrabal\Documents\27333.docx"
 
 -----------------------------------------------------------------------------------------------------
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27599/
@@ -776,6 +776,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
