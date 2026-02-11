@@ -152,13 +152,18 @@ dashboard layout
 
 
 
-ChatGPT notes
+ChatGPT notes - GIT 
 --------------
 
 to send changes made View -> Terminal
+
 git diff file1 > diff.txt
+
 set complete path
 upload diff.txt to chatGPT
+
+takto git příkaz pro vysvětlení posledního commitu v historii commits
+git diff HEAD~1 HEAD > C:\Users\karel.skrabal\source\diff.txt
 
 ChatGPT prompts:
 ----------------
@@ -260,6 +265,7 @@ Concrete file
 ----------
 Given this WPF Window, identify architectural smells
 and propose a step-by-step refactor without breaking behavior.
+
 
 
 
