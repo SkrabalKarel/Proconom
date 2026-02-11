@@ -1,4 +1,24 @@
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28056/
+
+
+prompt:
+
+ToDoList.xaml
+<TabItem Header="{x:Static p:Resources.strSeznam}">
+btnGridReportSettings
+
+"Celkový počet úloh:"
+
+sf:SfDataGrid x:Name="dgToDos"
+
+in ToDoList.xaml in <TabItem Header="{x:Static p:Resources.strSeznam}"> from left side of btnGridReportSettings add some control to show amount of records shown in grid sf:SfDataGrid x:Name="dgToDos"
+with caption "Celkový počet úloh:"
+
+
+----------------------------------------------------------------------------------------------------
+
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/25515/
 
 prompt:
@@ -799,6 +819,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
