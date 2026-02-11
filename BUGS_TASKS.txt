@@ -1,4 +1,49 @@
 
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28055/
+
+prompt:
+implement into private void ButtonGridExport_Click(object sender, RoutedEventArgs e) in ToDoList.xaml.cs excel export,
+data exported from dgToDos, button btnGridExport situate from left side next to existing btnPrintToDo
+
+example excel
+C:\Users\karel.skrabal\source\repos\Proconom\eConoM\WorkFlow\WorkFlowReporting.xaml.cs
+
+private void ButtonGridExport_Click(object sender, RoutedEventArgs e)
+{
+    if (listGridReports == null || listGridReports.Count == 0)
+        return;
+
+    Thread splash = SplasherHelper.ShowSplashWindow();
+    //export excelu z gridu
+    ExcelExportingOptions opts = new();
+    opts.ExcelVersion = ExcelVersion.Xlsx;
+    //vyhodit hidden sloupce
+    List<string> hiddenColumns = dgGridReports.Columns.Where(x => x.IsHidden).Select(x => x.MappingName).ToList();
+    opts.ExcludeColumns.AddRange(hiddenColumns);
+
+    ExcelEngine exEngine = dgGridReports.ExportToExcel(dgGridReports.View, opts);
+    IWorkbook workBook = exEngine.Excel.Workbooks[0];
+
+    MemoryStream fileStream = new();
+    workBook.SaveAs(fileStream);
+    workBook.Close();
+    exEngine.Dispose();
+
+    // zobrazení          
+    TiskApi.Aspose_SetupDC asposeSetup = new();
+    asposeSetup.Kod_stavby = KodStavba;
+    AsposeProconom.AsposeExcelPreview preview = new(KodStavba);
+    preview.Title = Properties.Resources.strNahledDokumentu + " - " + Properties.Resources.strWorkflowReporting + " | xlsx";
+    preview.nazev_souboru = "Workflow Reporty.xlsx";
+    preview.Show();
+    preview.fileApplied(fileStream, AsposeProconom.AsposeExcelPreview.LOCK_SHEET_TYPE.WF_GRID_REPORT, ProconomApi.ServerFaceSaveFormat.Xlsx, asposeSetup);
+
+    splash.CloseSplasher();
+}
+
+----------------------------------------------------------------------------------------------------
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28056/
 
 
@@ -819,6 +864,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
