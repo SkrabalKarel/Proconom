@@ -1,4 +1,21 @@
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/25515/
+
+prompt:
+
+in WinWorkFlowCreate.xaml in lvOdpovedne in TextBlock NazevSablony add probablz from UlohyWFDC object output for property public int Kod { get; set; } . Probably UlohyWFDC is 
+data record that is shown, just check it. UI must be similar to this in WinWorkFlowCreate.xaml
+
+
+  <TextBlock Grid.Column="0"
+             Margin="0,0,5,0"
+             VerticalAlignment="Center"
+             FontFamily="Open sans"
+             FontSize="11"
+             Foreground="{StaticResource ItemBrush}"
+             Text="{Binding Kod, StringFormat=#{0}}" />
+
+----------------------------------------------------------------------------------------------------
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27988/
 
@@ -782,6 +799,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
