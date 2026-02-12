@@ -1,4 +1,41 @@
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28004/
+
+prompt:
+
+
+
+
+GroupManagerWindow.xaml
+cbConstructions
+
+               <ListView Grid.Row="3"
+                         Grid.ColumnSpan="2"
+                         ItemTemplateSelector="{StaticResource PermissionEntityTemplateSelector}"
+                         ItemsSource="{Binding PermissionEntities}"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         SelectedItem="{Binding SelectedPermissionEntity}"
+                         SelectionChanged="ListView_SelectionChanged"
+                         SelectionMode="Single"
+                         Style="{StaticResource MaterialDesignListView}">
+
+in GroupManagerWindow.xaml is this listview
+
+<ListView Grid.Row="3"
+                         Grid.ColumnSpan="2"
+                         ItemTemplateSelector="{StaticResource PermissionEntityTemplateSelector}"
+                         ItemsSource="{Binding PermissionEntities}"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         SelectedItem="{Binding SelectedPermissionEntity}"
+                         SelectionChanged="ListView_SelectionChanged"
+                         SelectionMode="Single"
+                         Style="{StaticResource MaterialDesignListView}">
+
+that is not dynamicaly populated by changing value in cbConstructions and must
+
+C:\Users\karel.skrabal\Documents\28004.docx
+
+----------------------------------------------------------------------------------------------------
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28055/
 
@@ -864,6 +901,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
