@@ -171,6 +171,22 @@ upload diff.txt to chatGPT
 takto git příkaz pro vysvětlení posledního commitu v historii commits
 git diff HEAD~1 HEAD > C:\Users\karel.skrabal\source\diff.txt
 
+
+GIT - cleaning my local develop
+----------------
+local changes in develop (there is a change to push)
+I don't want to push it into develop
+I don't need that local changes
+
+.. make sure you're on develop branch
+git branch 
+
+.. check develop 
+git fetch origin
+
+.. discard all local changes, bring current state of develop
+git reset --hard origin/develop
+
 ChatGPT prompts:
 ----------------
 *****
@@ -271,6 +287,7 @@ Concrete file
 ----------
 Given this WPF Window, identify architectural smells
 and propose a step-by-step refactor without breaking behavior.
+
 
 
 
