@@ -394,6 +394,11 @@ Your branch is up to date with 'origin/develop'.
 nothing to commit, working tree clean
 
 
+Task 1 - in WinWorkFlowCreate.xaml its title bar I need to define UpdateWFTemplateDescription.xaml where such title bar is missing 
+(text shown in just keep). Task 2 - btnSave, btnCancel position to the center.
+Simply reuse the same design look as is in uploaded picture
+
+
 ---------------------------------------------------------------------------------------------
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27409/
@@ -910,6 +915,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
