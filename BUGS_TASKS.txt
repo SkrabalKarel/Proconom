@@ -1,4 +1,25 @@
 
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28003/
+
+in ucResReportDetail.xaml checkBox strZahrnoutPoznamky move next to strZobrazitPrestavku and use the same design/style as is used for strPridatZaznam and strZobrazitPrestavku (gray color)
+
+
+ <CheckBox x:Name="cbZahrnoutPoznamky"
+           Grid.Row="1"
+           Width="Auto"
+           Margin="0,5,0,0"
+           VerticalContentAlignment="Center"
+           Content="{x:Static p:Resources.strZahrnoutPoznamky}"
+           IsChecked="True">
+     <CheckBox.Style>
+         <Style BasedOn="{StaticResource MaterialDesignCheckBox}" TargetType="{x:Type CheckBox}" />
+     </CheckBox.Style>
+ </CheckBox>
+
+----------------------------------------------------------------------------------------------------
+
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28116/
 
 C:\Users\karel.skrabal\Documents\28116.docx
@@ -915,6 +936,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
