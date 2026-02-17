@@ -7,6 +7,27 @@ https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28175/
 ErrResponse res = MessageWindow.Dialog.Show(Properties.Resources.strOpravduSiPrejeteUzamknoutZBV, "", "PRO|||CONOM", MessageWindow.ErrIcon.Question, true);
 
 ZBVDTO
+Uzamceno
+
+window kde se zamyká
+ucZBVDetail.xaml
+CheckBox chbUzamceno
+chbUzamceno_Checked
+
+window kam se drag&drop soubory
+
+
+SfDataGrid lvDokumentySlozky
+DokumentyWidgetControl.xaml
+DSlozkaDC 
+
+     private async void lvDokumentySlozky_Drop(object sender, DragEventArgs e)
+     {
+         if (tvSlozkyDMS.SelectedItem is DSlozkaDC slozka)
+         {
+             await DokumentyDrop(slozka, e.Data);
+         }
+     }
 
 
 ------------------------------------------------------------------------------------------------------------------
@@ -1004,6 +1025,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
