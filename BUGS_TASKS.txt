@@ -1,3 +1,16 @@
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28189/
+
+DokumentyVlastnosti.xaml
+dgVerze
+
+
+DokumentyWidgetControl.xaml
+lvDokumentySlozky
+private void lvDokumentySlozky_FilterItemsPopulated(object sender, GridFilterItemsPopulatedEventArgs e)
+lvDokumentySlozky_FilterChanging
+
+-----------------------------------------------------------------------------------------
+
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28195/
 
@@ -1061,6 +1074,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
