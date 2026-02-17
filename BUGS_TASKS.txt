@@ -1,4 +1,40 @@
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28195/
+
+
+
+
+<TextBlock x:Name="tbZadneZaznamy"
+           Grid.Row="1"
+           Padding="10,75,0,0"
+           HorizontalAlignment="Left"
+           VerticalAlignment="Top"
+           Panel.ZIndex="1000"
+           FontSize="12"
+           FontStyle="Italic"
+           Foreground="Gray"
+           IsHitTestVisible="False"
+           Text="{x:Static p:Resources.strZadneZaznamy}"
+           Visibility="Visible" />
+
+<TextBlock x:Name="tbZadneZaznamyDleFiltru"
+           Grid.Row="1"
+           Padding="20,75,0,0"
+           HorizontalAlignment="Left"
+           VerticalAlignment="Top"
+           Panel.ZIndex="1000"
+           FontSize="16"
+           Foreground="Red"
+           IsHitTestVisible="False"
+           Text="{x:Static p:Resources.strProZadaneFiltryNebylyNalezenyZadneDokumenty}"
+
+
+
+tbZadneZaznamy and tbZadneZaznamyDleFiltru are show too early, they should show when pbLoadBar.Visibility = Visibility.Collapsed; is called in RefreshDMS if only they should show depending on actual records loaded
+
+
+
+------------------------------------------------------------------------------------------------------------
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28175/
 
@@ -1025,6 +1061,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
