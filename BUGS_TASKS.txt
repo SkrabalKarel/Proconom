@@ -9,6 +9,15 @@ lvDokumentySlozky
 private void lvDokumentySlozky_FilterItemsPopulated(object sender, GridFilterItemsPopulatedEventArgs e)
 lvDokumentySlozky_FilterChanging
 
+xmlns:filter="clr-namespace:DataGridFilterLibrary;assembly=DataGridFilterLibrary"
+
+
+DokumentyWidgetControl.xaml contains GridTextColumn strNazevH for example (it is one of many others) and all of them have filtering functionality that
+opens the filter dialog like on the picture required_filter.png. In DokumentyVlastnosti.xaml filtering functionality that is there too as on wrong_filter.png ,  should be changed to another to required_filter.png.
+How to do it? If you need to upload another files just ask mate!
+
+
+
 -----------------------------------------------------------------------------------------
 
 
@@ -1074,6 +1083,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
