@@ -477,6 +477,19 @@ Debuggovací kód .... DokumentyWidgetControl.xaml.cs ln 1654
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27493/
 UserRigthsWindow.xaml
 
+kde se provádí prvotní filtrace ?????
+v UI v PRC
+v Login.xaml.cs  .... tady se načítají data do MANAŽER STAVEB
+v metodě private async Task ZobrazManager()
+_startData = await server.ManagerStaveb_GetStartDataValidateAsync(new GetStartDataValidateRequest()
+{
+    StavbaUtvarPath = ISdata.data.OrderBy(x => (int)x.Uzel.TYP_UZLU).ThenBy(x => x.Uzel.Kod).Select(x => new ProconomApi.GetStartDataValidateRequestDTO
+    { NodeType = (ProconomApi.TYP_UZLU)x.Uzel.TYP_UZLU, NodeId = x.Uzel.Kod }).ToList()
+});
+
+v API pak
+GetStartDataValidateHandler objekt
+
 --------------------------------------------------------------------------------------------
 
 
@@ -1112,6 +1125,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
