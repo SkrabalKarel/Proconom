@@ -201,9 +201,7 @@ dashboard layout
 
 ChatGPT notes - GIT 
 --------------
-
 to send changes made View -> Terminal
-
 git diff file1 > diff.txt
 
 set complete path
@@ -212,6 +210,10 @@ upload diff.txt to chatGPT
 takto git příkaz pro vysvětlení posledního commitu v historii commits
 git diff HEAD~1 HEAD > C:\Users\karel.skrabal\source\diff.txt
 
+další varianta pro 1 konkrétní soubor a 3 poslední commity
+git log -3 --pretty=format:"### Commit: %h | %s | %ad" --date=short -- ucStavbaDashboardMD.xaml.cs > C:\Users\karel.skrabal\source\git_diff_summary.txt
+echo "" >> git_diff_summary.txt
+git log -3 -p --stat -- ucStavbaDashboardMD.xaml.cs >> C:\Users\karel.skrabal\source\git_diff_summary.txt
 
 GIT - cleaning my local develop
 ----------------
@@ -334,6 +336,7 @@ Concrete file
 ----------
 Given this WPF Window, identify architectural smells
 and propose a step-by-step refactor without breaking behavior.
+
 
 
 
