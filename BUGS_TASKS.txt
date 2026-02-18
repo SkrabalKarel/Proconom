@@ -1,3 +1,32 @@
+
+
+
+-----------------------------------------------------------------------------------------
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28222/
+
+in WFTaskHeaderComponent.xaml.cs is private void txtNazev_TextChanged(object sender, TextChangedEventArgs e) for taking care for inputing Text.Length
+I need to implement the same in UpdateWFTemplateDescription.xaml for tbName TextBox showing also msgNazevNesmiMitPres200Znaku
+
+private void tbName_TextChanged(object sender, TextChangedEventArgs e)
+{
+    if (sender is not TextBox textBox || textBox.Text.Length < 200)
+        return;
+
+    textBox.TextChanged -= tbName_TextChanged;  // prevent re-entrancy
+
+    MessageWindow.Dialog.Show(Properties.Resources.msgNazevNesmiMitPres200Znaku);
+    textBox.Text = textBox.Text.Remove(textBox.Text.Length - 1);
+    textBox.Select(textBox.Text.Length, 0);
+
+    textBox.TextChanged += tbName_TextChanged;  // restore
+}
+
+NEKONEČNÁ SMYČKA PŘI TEXTCHANGED !!!!!
+
+-----------------------------------------------------------------------------------------
+
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28189/
 
 DokumentyVlastnosti.xaml
@@ -1083,6 +1112,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
