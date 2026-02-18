@@ -1,4 +1,45 @@
 -------------------------
+# WPF — TextChanged Re-entrancy Bug
+-------------------------
+## What it is
+When you modify `TextBox.Text` programmatically inside a `TextChanged` handler,
+WPF fires `TextChanged` **again synchronously** before the first call returns.
+This causes infinite loops, repeated dialogs, or other unintended side effects.
+## When it happens
+Any `TextChanged` handler that:
+- truncates the text (`textBox.Text = textBox.Text.Remove(...)`)
+- replaces or transforms the text in any way
+## Symptom
+- A message dialog appears repeatedly / in a loop on every keystroke past the limit
+- Or the handler visibly fires more times than expected
+## Solution
+Unsubscribe the handler **before** modifying `Text`, resubscribe **after**:
+
+```csharp
+private void tbName_TextChanged(object sender, TextChangedEventArgs e)
+{
+    if (sender is not TextBox textBox || textBox.Text.Length < 200)
+        return;
+
+    textBox.TextChanged -= tbName_TextChanged;  // prevent re-entrancy
+
+    MessageWindow.Dialog.Show(Properties.Resources.msgNazevNesmiMitPres200Znaku);
+    textBox.Text = textBox.Text.Remove(textBox.Text.Length - 1);
+    textBox.Select(textBox.Text.Length, 0);
+
+    textBox.TextChanged += tbName_TextChanged;  // restore
+}
+```
+
+## Key rule
+> In WPF, **any assignment to a dependency property inside its own change handler
+> will re-trigger that handler**. Always guard with unsubscribe/resubscribe or a
+> boolean flag before mutating the source property.
+## Applies to
+`TextChanged`, `SelectionChanged`, `ValueChanged`, and similar WPF change events
+where the handler modifies the very property being observed.
+
+-------------------------
 FreeCommander knowledge
 -------------------------
 copy file name only to clipboard ... Alt+Shift+Ins
@@ -293,6 +334,7 @@ Concrete file
 ----------
 Given this WPF Window, identify architectural smells
 and propose a step-by-step refactor without breaking behavior.
+
 
 
 
