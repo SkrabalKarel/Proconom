@@ -1,4 +1,10 @@
 -------------------------
+Naše konvence
+-------------------------
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_wiki/wikis/PROCONOM.wiki/638/Konvence
+
+-------------------------
 # WPF — TextChanged Re-entrancy Bug
 -------------------------
 ## What it is
@@ -336,6 +342,7 @@ Concrete file
 ----------
 Given this WPF Window, identify architectural smells
 and propose a step-by-step refactor without breaking behavior.
+
 
 
 
