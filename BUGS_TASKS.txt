@@ -1,4 +1,45 @@
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27834/
+
+
+Workflow -> Manažer worflow -> VEDU -> podrobnosti
+rozkliknout úkol -> Reporting workflow -> Detail úkolu -> Deadline úkolu
+
+tady se kontroluje na zda deadline padne na víkend
+WFTaskDetailsComponent.xaml
+dpDeadlineUkolu
+dpDeadlineUkolu_SelectedDateChanged
+
+kontrola probíhá na API
+ChangeDeadlineTaskHandler
+
+na UI voláno z dpDeadlineUkolu_SelectedDateChanged 
+pomocí 
+await WorkflowServer.ChangeDeadlineTask(context.Uloha.Kod, context.Uloha.DeadLineVypocteny);
+
+ <data name="deadlineVikend" xml:space="preserve">
+   <value>Datum deadlinu nesmí být nastaven na víkend</value>
+
+
+
+Manažer workflow -> Založit proces -> Workflow šablony -> přidat (nějaká šablona) -> Aplikace workflow 
+btn Pokračovat -> Nastavení kroku -> Počet dní -> změnit na datum -> datePicker ... to je ono
+ApplyWorkflowControl.xaml
+dpDeadlineDatum
+dpDeadlineDatum_SelectedDateChanged
+
+jestliže stavba má nastavený kalendář, tak kontrolovat na víkendové dny,
+jestliže nemá stavba nastavený kalendář, tak to pustit
+StavbyNastaveniDTO
+ if ((DataContext as StavbyNastaveniDTO).KodKalendar.HasValue)
+     brKalendarDetail.DataContext = await ProconomStaticClient.AuthorizedClient.CiselnikDesktop_VratDataCisScheduleHGMdetailAsync((DataContext as StavbyNastaveniDTO).KodKalendar.Value);
+
+
+
+Promt:
+Now I would like ask for some architectural improvements (using MVVM) to solve this problem: in ApplyWorkflowControl.xaml.cs I need to have information saved in StavbyNastaveniDTO, KodKalendar. This object is initialized and saved in some other parts of WPF project, subsequently I need it ApplyWorkflowControl.xaml.cs. How to solve it ? Create an interface, then initialize locally via static IWorkflowServer WorkflowServer => _workflowServer ??= Resolver.Resolve(); that we already use? I have Data.KodStavby so I could use for idetifying kalendar KodStavba .... Give me proposal, for improvment!
+
+WFApplyDTO, StavbyNastaveniDTO, 
 
 
 -----------------------------------------------------------------------------------------
@@ -1125,6 +1166,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
