@@ -1,3 +1,25 @@
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28083/
+
+WinWorkflowReporting.xaml
+
+
+simply content of window WinWorkflowReporting.xaml shown in the picture insert in WorkFlowReporting.xaml at the bottom of the grid
+
+<Grid>
+    <md:Card>
+        <Grid Margin="4" PreviewMouseWheel="ListView_PreviewMouseWheel">
+
+
+
+WinWorkflowReporting.xaml in Window_Loaded loading WorkflowTaskDetailContext datacontext and shows details
+
+And I need to show these details in WorkFlowReportingWindow
+belov lvLow, lvVeryLow, lvHigh listviews in the way how master x slave data are shown, the active item in lvHigh listview will have its details shown belove it (WorkflowTaskDetailContext), when listview item changes, than detail will change too.
+
+
+
+------------------------------------------------------------------------------------------
+
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28336/
 souvisí s
@@ -1187,6 +1209,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
