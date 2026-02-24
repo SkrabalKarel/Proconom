@@ -1,4 +1,25 @@
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28336/
+souvisí s
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27736
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27975
+
+
+DokumentyWidgetControl.xaml
+Button x:Name="btnCreate"
+
+
+sf:SfDataGrid x:Name="lvDokumentySlozky"
+
+
+
+eventy které přidávají nové záznamy :
+mnuiAddFolderList_Click
+newWord_Click
+newExcel_Click
+
+------------------------------------------------------------------------------------------
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27834/
 
 
@@ -1166,6 +1187,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
