@@ -760,6 +760,18 @@ public void SerializeGrid()
 
 "C:\Users\karel.skrabal\Documents\27333.docx"
 
+
+
+example where serialization/deserialization works well is in WidgetRPolozky.xaml.cs
+private bool DeserializeGrid()
+SerializeGrid()
+
+popis k PR:
+bohužel zmiňovaný rozpočet -> vyhledávání položek (WidgetRPolozky) je jiný grid než v Měření-> Vyhledávání položek (WidgetMereniHistoriePolozky),
+první je jenom prostý grid, druhý je grid master-detail a u toho druhého se mrví deserializací AllowDraggingColumns nastavení (přepíše se to které
+je v xaml nastavení i to které bylo serializovano), osvědčilo se mi použít SerializationOptions, jinak nastala výjimka. Nicméně co šlo jsem použil z
+WidgetRPolozky.
+
 -----------------------------------------------------------------------------------------------------
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27599/
 strPolickoJePovinne
@@ -1209,6 +1221,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
