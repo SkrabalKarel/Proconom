@@ -1,3 +1,14 @@
+
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28097/
+
+UpdateSourceTrigger=LostFocus na gridu způsobí že když zadáš něco do gridu, necháš focus na buňce gridu
+a zmáčkneš nějaké save tlačítko, toto nastavení na LostFocus způsobí, že se uloží staré (předchozí data)
+ikdyž uživatel vložil nové data do buňky, protože právě v buňce nedošlo ke ztátě focusu! Velmi těžké debugovat,
+protože když náhodně při testování dojde k LostFocus na buňce, tak se tato "vlastnost" neprojeví !!!!!!!!!
+
+------------------------------------------------------------------------------------------
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28083/
 
 WinWorkflowReporting.xaml
@@ -1221,6 +1232,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
