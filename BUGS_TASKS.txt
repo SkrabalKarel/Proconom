@@ -29,6 +29,19 @@ belov lvLow, lvVeryLow, lvHigh listviews in the way how master x slave data are 
 
 
 
+Target is WorkFlowReporting.xaml
+under ListView lvHigh add a new view, view of details parent record.
+All these details are on WorkFlowReporting.xaml, so the task is everything what is WorkFlowReporting.xaml add under lvHigh in WorkFlowReporting.xaml for the 
+appropriate main record already shown on WorkFlowReporting.xaml. Exect detail data are defined in WorkFlowReporting.xaml.cs in private void ListView_SelectionChanged(object sender, SelectionChangedEventArgs e) as 
+WinWorkflowReporting window = new(uloha.Kod, kodUzlu, typUzlu, isZruseneWF: isZruseno);
+window.Show();
+So exectly the same data to show as a new section under lvHigh ListView
+
+funkcionalita stash
+On develop_28353_ksk_WFdetailsSameWindow: Checking out develop
+Stashing uncommitted changes before performing a checkout of 'develop'. Pop or apply these changes to restore them.
+
+
 ------------------------------------------------------------------------------------------
 
 
@@ -1232,6 +1245,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
