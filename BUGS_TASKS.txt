@@ -1,5 +1,30 @@
 
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28391/
+
+DeadlineToColorConverter
+ToDoList.xaml.cs
+ToDoList.xamlDeadlineToColorConverter.cs
+
+ctx.TableData
+-		TableData	Count = 2	System.Collections.ObjectModel.ObservableCollection<proconom.DataClass.ToDoList.ToDoQuestDCC>
+
+
+(new System.Collections.Generic.Mscorlib_CollectionDebugView<proconom.DataClass.ToDoList.ToDoQuestDCC>(ctx.TableData).Items[0]).Deadline
+(new System.Collections.Generic.Mscorlib_CollectionDebugView<proconom.DataClass.ToDoList.ToDoQuestDCC>(ctx.TableData).Items[0]).LastStavChanged
+(new System.Collections.Generic.Mscorlib_CollectionDebugView<proconom.DataClass.ToDoList.ToDoQuestDCC>(ctx.TableData).Items[0]).Vytvoreno
+
+
+the problem is much more complex, by this type DataContext is inialized ToDoQuestDCC
+
+(new System.Collections.Generic.Mscorlib_CollectionDebugView<proconom.DataClass.ToDoList.ToDoQuestDCC>(data).Items[0]).StavSelected
+(new System.Collections.Generic.Mscorlib_CollectionDebugView<proconom.DataClass.ToDoList.ToDoQuestDCC>(data).Items[0]).StavSelected.IsFinal  .... == true task is finished
+
+
+
+
+-----------------------------------------------------------------------------------------
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28097/
 
 UpdateSourceTrigger=LostFocus na gridu způsobí že když zadáš něco do gridu, necháš focus na buňce gridu
@@ -1245,6 +1270,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
