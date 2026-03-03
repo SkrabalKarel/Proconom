@@ -21,6 +21,12 @@ the problem is much more complex, by this type DataContext is inialized ToDoQues
 (new System.Collections.Generic.Mscorlib_CollectionDebugView<proconom.DataClass.ToDoList.ToDoQuestDCC>(data).Items[0]).StavSelected.IsFinal  .... == true task is finished
 
 
+ToDoQuestDCC
+public DateTime? Deadline { get; set; }
+public ProconomApi.StavTodoDTO StavSelected
+data.TableData.Where(p => p.StavSelected != null && !p.StavSelected.IsFinal)
+
+
 
 
 -----------------------------------------------------------------------------------------
@@ -1270,6 +1276,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
