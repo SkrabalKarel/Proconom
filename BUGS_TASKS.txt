@@ -72,6 +72,9 @@ funkcionalita stash
 On develop_28353_ksk_WFdetailsSameWindow: Checking out develop
 Stashing uncommitted changes before performing a checkout of 'develop'. Pop or apply these changes to restore them.
 
+další stash z 3.3.2026
+On develop_28083_ksk_WFdetail: Checking out develop
+
 
 ------------------------------------------------------------------------------------------
 
@@ -1276,6 +1279,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
