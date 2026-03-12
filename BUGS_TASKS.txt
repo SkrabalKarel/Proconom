@@ -1,13 +1,58 @@
 
 
+--------------------------------------------------------------------------------
 
-https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27391/
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28586
+
+resource
+strOtevritEasy3d
+
+DokumentyWidgetControl.xaml
+<Button.ToolTip>
+    <shar:ucNewTooltip TextNormal1="{x:Static p:Resources.strOtevritEasy3d}" />
+</Button.ToolTip>
+
+                        <Button.ToolTip>
+                            <shar:ucNewTooltip TextNormal1="{x:Static p:Resources.strOtevritEasy3d}" ToolTipService.ShowDuration="1000" />
+                        </Button.ToolTip>
+<Button.ToolTip>
+    <shar:ucNewTooltip TextNormal1="{x:Static p:Resources.strOtevritComplex2d3d}" />
+</Button.ToolTip>
+
+ucNewTooltip.xaml
+
+StyleWindow.xaml
+<Setter Property="ToolTipService.InitialShowDelay" Value="250" />
 
 report se volá tady !!!!!! WFTaskPripominkyComponent.xaml.cs
 private async void btnExport_Click(object sender, RoutedEventArgs e)
 
 WorkflowPripominkyPrint
 TiskReportApi.Modules.Reports.Handlers.GetWorkflowPripominkyDataHandler
+ToolTipService.ShowDuration
+ToolTipService.ShowDuration="12000"
+
+
+
+
+přidal jsem do DokumentyWidgetControl.xaml .....
+                                            <Button Margin="4,0,0,0"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    btn:MDButtonTheme.MDIcon="EyeOutline"
+                                                    Background="Transparent"
+                                                    PreviewMouseUp="btnNahled_PreviewMouseUp"
+                                                    ToolTipService.IsEnabled="{Binding IsIfc}"
+                                                    ToolTipService.ShowOnDisabled="True"
+                                                    Visibility="{Binding CheckDefaultModelVisibility, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                <Button.ToolTip>
+
+                                                    <!--  TODO  -->
+                                                    <shar:ucNewTooltip TextNormal1="{x:Static p:Resources.strOtevritDMS}"
+                                                                       ToolTipService.BetweenShowDelay="1900"
+                                                                       ToolTipService.InitialShowDelay="300"
+                                                                       ToolTipService.ShowDuration="1000" />
+                                                </Button.ToolTip>
 
 
 ---------------------------------------------------------------------------------------
@@ -1291,6 +1336,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
