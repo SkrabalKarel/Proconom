@@ -1,3 +1,17 @@
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28642/
+
+SELECT *
+  FROM [Data_Develop].[dbo].[d_verze]
+  where forge_urn is not null
+
+kde forge_urn is not NULL tak tento model je přeložený
+
+Visual code ADFORGE_REACT projekt
+v terminálu přejít do složky kde je package.json soubor
+tam spustit 
+npm install
+npm start
+
 
 
 --------------------------------------------------------------------------------
@@ -1336,6 +1350,7 @@ ucGlobalNastaveni.xaml  proconom.PopupWindows.GlobalNastaveniWin
 triggery, copie stylu
 nový styl
 podědin od stylu
+
 
 
 
