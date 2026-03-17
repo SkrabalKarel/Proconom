@@ -1,3 +1,57 @@
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28563/
+
+
+● The key difference is already visible: the two grids bind to OsobyZP on different DataContext types:
+
+  - ucStavbaNastaveni → DataClass.StavbyNastaveniDTO
+  - ucObjektDetail → DataClass.ObjektDTO
+
+  These are two different model classes — stavba-level vs. objekt-level. Let me confirm how each populates its OsobyZP.
+
+● Searched for 1 pattern, read 2 files (ctrl+o to expand)
+
+● Now let me find where ObjektDTO.OsobyZP is populated — what API endpoint and what data it pulls from.
+
+● Searched for 2 patterns (ctrl+o to expand)
+
+● Now I have enough to give you the full explanation.
+
+  ---
+  Root Cause: Different DataContext = Different Hierarchy Level
+
+  Both grids bind to the same property name OsobyZP, but on completely different model objects:
+
+  ┌─────────────┬───────────────────┬────────────────────┬────────────────────────┬────────────────────────────────────────┐
+  │    Grid     │       File        │  DataContext type  │      Entity level      │               Source API               │
+  ├─────────────┼───────────────────┼────────────────────┼────────────────────────┼────────────────────────────────────────┤
+  │ dgPodpisyZP │ ucStavbaNastaveni │ StavbyNastaveniDTO │ Stavba (site)          │ RozpocetDesktop_VratNastaveniStavby... │
+  ├─────────────┼───────────────────┼────────────────────┼────────────────────────┼────────────────────────────────────────┤
+  │ Podpisy     │ ucObjektDetail    │ ObjektDTO          │ Objekt (budget object) │ RozpocetDesktop_VratObjektAsync        │
+  └─────────────┴───────────────────┴────────────────────┴────────────────────────┴────────────────────────────────────────┘
+
+  They are reading different rows from the database — same PoziceVazby table, but filtered by TypUzlu and KodUzlu:
+
+  - Stavba grid saves with KodUzlu = kodStavba (ucStavbaNastaveni.xaml.cs:2392)
+  - Objekt grid saves with TypUzlu = TYP_UZLU.OBJEKT and KodUzlu = uloz.Kod (ucObjektDetail.xaml.cs:1173-1174)
+
+  Why They Differ at Runtime
+
+  The stavba-level OsobyZP are site-wide signatories set once in project settings. The objekt-level OsobyZP are per-object overrides — each ObjektDTO loads its own separate records from the API. Unless the backend explicitly
+  copies the stavba records into each new objekt on creation, the objekt grid will be empty or have different values.
+
+  There is a DefaultniPozice flag in the data (ucObjektDetail.xaml:1261 — IsReadOnly="{Binding DefaultniPoziceZP}"), which suggests "default positions" can be inherited/locked from the stavba level, but only if the backend
+  populates them that way. The grid itself has no self-copying mechanism on the client side.
+
+  In Short
+
+  This is by design — they are not meant to be identical. The stavba grid shows site-level signatories; the objekt grid shows object-level signatories. If you expect them to match, the synchronization would have to happen on
+  the server side (e.g., when creating/loading an objekt, the API should seed its OsobyZP from the stavba's OsobyZP). No such logic exists in the client code.
+
+
+
+-----------------------------------------------------------------------------
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28642/
 
 SELECT *
