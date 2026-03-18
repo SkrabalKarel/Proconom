@@ -50,6 +50,13 @@ https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28563/
 
 
 
+
+podpisy na nastavení stavby zdroj č.1 - použije se jako default
+podpisy na SO zdroj č.2 (stavebním objektu) - použije se jako další jiný zdroj
+podpisy na ZP zdroj č.2 (zjišťovacím protokolu) - převezme z nadřazené stavby
+
+
+
 -----------------------------------------------------------------------------
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28642/
