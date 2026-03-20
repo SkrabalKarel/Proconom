@@ -1,3 +1,219 @@
+
+
+-------------------------
+ TestApi — Project Explanation & Recapitulation
+-------------------------
+  What it is
+
+  A .NET 8 ASP.NET Core Web API serving as the single backend for both the Proconom WPF desktop app and the AdForge_React web frontend. Runs on port 44301 (via Ocelot gateway) or directly on 44300.
+
+  ---
+  Technology Stack
+
+  ┌────────────────────┬─────────────────────────────────────────────────────────────────┐
+  │       Layer        │                           Technology                            │
+  ├────────────────────┼─────────────────────────────────────────────────────────────────┤
+  │ Framework          │ .NET 8 ASP.NET Core                                             │
+  ├────────────────────┼─────────────────────────────────────────────────────────────────┤
+  │ ORM                │ Entity Framework Core 8 (DB_DevelopContext, DB_MasterContext)   │
+  ├────────────────────┼─────────────────────────────────────────────────────────────────┤
+  │ CQRS Mediator      │ MediatR — all requests routed through it                        │
+  ├────────────────────┼─────────────────────────────────────────────────────────────────┤
+  │ Object Mapping     │ AutoMapper (profiles per module, + global rules in Startup.cs)  │
+  ├────────────────────┼─────────────────────────────────────────────────────────────────┤
+  │ Authentication     │ JWT Bearer + IdentityServer4                                    │
+  ├────────────────────┼─────────────────────────────────────────────────────────────────┤
+  │ Authorization      │ Role-based + Policy/Scope-based ([Authorize(Roles, Policy)])    │
+  ├────────────────────┼─────────────────────────────────────────────────────────────────┤
+  │ API Gateway        │ Ocelot (fronts TestApi, running as OcelotGate)                  │
+  ├────────────────────┼─────────────────────────────────────────────────────────────────┤
+  │ API Docs           │ NSwag (not Swashbuckle)                                         │
+  ├────────────────────┼─────────────────────────────────────────────────────────────────┤
+  │ Serialization      │ Newtonsoft.Json                                                 │
+  ├────────────────────┼─────────────────────────────────────────────────────────────────┤
+  │ Real-time          │ SignalR                                                         │
+  ├────────────────────┼─────────────────────────────────────────────────────────────────┤
+  │ Push Notifications │ Firebase (IFirebaseService)                                     │
+  ├────────────────────┼─────────────────────────────────────────────────────────────────┤
+  │ Cloud Storage      │ Azure Blob Storage, Azure Queues, Azure Tables, Azure Cosmos DB │
+  ├────────────────────┼─────────────────────────────────────────────────────────────────┤
+  │ Serverless         │ Azure Functions (separate project AzureFunctionsCsharp)         │
+  ├────────────────────┼─────────────────────────────────────────────────────────────────┤
+  │ Logging            │ Application Insights + custom IRequestLogger                    │
+  ├────────────────────┼─────────────────────────────────────────────────────────────────┤
+  │ Reporting          │ DevExpress + Syncfusion (licensed)                              │
+  └────────────────────┴─────────────────────────────────────────────────────────────────┘
+
+  ---
+  Architectural Pattern
+
+  HTTP Request
+       │
+       ▼
+  [Controller]              ← thin layer, only routing + auth
+       │  ResolveResponse(request)
+       ▼
+  [GeneralController]       ← base class, sends via MediatR, centralizes exception → HTTP mapping
+       │  _mediator.Send(request)
+       ▼
+  [IRequestHandler<TRequest, TResponse>]   ← all business logic lives here
+       │
+       ▼
+  [DbContext / Services / Factories / Azure / Firebase / ...]
+
+  Key points:
+  - Controllers contain zero business logic — one-liners calling await ResolveResponse(request)
+  - GeneralController (Commons/GeneralController.cs) maps all domain exceptions to HTTP responses automatically:
+    - NoDataFoundException → 404
+    - BadDataException → 400
+    - ForbiddenException → 403
+    - ConcurrencyException → 409
+    - NoContentOkException → 204
+    - etc.
+  - Each operation (GetToDos, AddToDo, UpdateToDo…) is its own Handler class with co-located Request + Response + DTO
+
+  ---
+  Directory Structure (inside TestApi/)
+
+  TestApi/
+  ├── Startup.cs                  ← DI registration, middleware, auth config
+  ├── Program.cs                  ← entry point
+  ├── v1/
+  │   ├── Modules/                ← feature modules (one folder per domain)
+  │   │   ├── ToDoList/
+  │   │   │   ├── ToDoListController.cs
+  │   │   │   ├── Handlers/
+  │   │   │   │   ├── AddToDoHandler.cs    ← handler + request + response in one file
+  │   │   │   │   ├── GetToDosHandler.cs
+  │   │   │   │   └── ...
+  │   │   │   ├── Models/
+  │   │   │   ├── Factories/
+  │   │   │   ├── Helpers/
+  │   │   │   └── Profiles/       ← AutoMapper profiles (some modules)
+  │   │   ├── Workflow/
+  │   │   ├── Dokumenty/
+  │   │   ├── BIM/
+  │   │   └── ... (45+ modules total)
+  │   ├── Services/               ← cross-cutting services (AuditService, PdfService…)
+  │   ├── Converters/             ← mapping converters (entity → DTO)
+  │   ├── DTOS/                   ← shared DTOs
+  │   ├── DataManagers/           ← data access helpers
+  │   ├── Enums/
+  │   └── Factories/              ← abstract factories
+  ├── Auth/                       ← JWT, claims, token resolution
+  └── Core/                       ← GeneralController, exceptions, extensions
+
+  ---
+  How to Add a New Endpoint — Step by Step
+
+  This follows MODE 2 (new feature) from the project rules. The pattern is always the same, regardless of domain.
+
+  Step 1 — Create the Handler file
+
+  Location: v1/Modules/YourModule/Handlers/GetSomethingHandler.cs
+
+  The file holds three classes together: handler, request, response.
+
+  using EFModels.Models;
+  using MediatR;
+
+  namespace TestApi.v1.Modules.YourModule.Handlers
+  {
+      // ── Handler ──────────────────────────────────────────────────────────
+      public class GetSomethingHandler : IRequestHandler<GetSomethingRequest, GetSomethingResponse>
+      {
+          private readonly DB_DevelopContext _ctx;
+          private readonly IClaimResolver _claimResolver;
+
+          public GetSomethingHandler(DB_DevelopContext ctx, IClaimResolver claimResolver)
+          {
+              _ctx = ctx;
+              _claimResolver = claimResolver;
+          }
+
+          public async Task<GetSomethingResponse> Handle(GetSomethingRequest request, CancellationToken cancellationToken)
+          {
+              int userId = _claimResolver.ResolveInt(System.Security.Claims.ClaimTypes.NameIdentifier);
+
+              var data = await _ctx.YourTable
+                  .Where(x => x.XId == request.Id)
+                  .Select(x => new SomethingDTO { Id = x.XId, Name = x.Nazev })
+                  .FirstOrDefaultAsync(cancellationToken);
+
+              if (data == null)
+                  throw new NoDataFoundException();
+
+              return new GetSomethingResponse { Data = data };
+          }
+      }
+
+      // ── Request ──────────────────────────────────────────────────────────
+      public class GetSomethingRequest : IRequest<GetSomethingResponse>
+      {
+          public int Id { get; set; }
+      }
+
+      // ── Response ─────────────────────────────────────────────────────────
+      public class GetSomethingResponse
+      {
+          public SomethingDTO Data { get; set; }
+      }
+
+      // ── DTO ──────────────────────────────────────────────────────────────
+      public class SomethingDTO
+      {
+          public int Id { get; set; }
+          public string Name { get; set; }
+      }
+  }
+
+  Step 2 — Add the endpoint to the Controller
+
+  Location: v1/Modules/YourModule/YourModuleController.cs
+
+  [Route("api/[controller]")]
+  [ApiController]
+  [Authorize(Roles = Role.V1User)]
+  public class YourModuleController : GeneralController
+  {
+      public YourModuleController(IServiceProvider serviceProvider) : base(serviceProvider) { }
+
+      [HttpGet("{Id}")]
+      public async Task<ActionResult<GetSomethingResponse>> GetSomething([FromRoute] GetSomethingRequest request)
+          => await ResolveResponse(request);
+
+      [HttpPost]
+      public async Task<ActionResult<CreateSomethingResponse>> CreateSomething([FromBody] CreateSomethingRequest request)
+          => await ResolveResponse(request);
+  }
+
+  That's it for the controller. One line per endpoint.
+
+  Step 3 — Register services if needed
+
+  If your handler needs a new service (not already registered), add it to Startup.cs → ConfigureServices:
+
+  services.AddScoped<IYourNewService, YourNewService>();
+
+  MediatR handlers are auto-discovered — no registration needed as long as they're in the same assembly.
+
+  Step 4 — No additional wiring needed
+
+  - MediatR picks up handlers automatically via services.AddMediatR(typeof(Startup).Assembly, ...)
+  - GeneralController.ResolveResponse() handles all HTTP status mapping automatically
+  - Authentication/authorization is enforced by the [Authorize] attribute on the controller class or individual action
+
+  ---
+  Key Rules to Remember
+
+  - Never put logic in the controller — controllers are pure routing
+  - Exception → HTTP mapping is centralized in GeneralController — throw domain exceptions from handlers, not return BadRequest(...)
+  - All DbContext operations must be async — .FirstOrDefaultAsync(), .ToListAsync(), never .FirstOrDefault() on EF queries
+  - Claims-based user resolution via IClaimResolver — never trust request body for user identity
+  - DB_DevelopContext = project/construction data, DB_MasterContext = tenant/user/database registry
+
+
+
 -------------------------
 Naše konvence
 -------------------------
