@@ -1,5 +1,16 @@
 
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28642/
+
+visual code Forge_React ... slouží pro prohlížení modelů
+visual studio AzureFunctions ... slouží pro překlad
+db mssql ... ProconomMaster tabulka c_databaze_nastaveni.... na konci pole typ_prekladani_modelu = 0
+
+
+
+
+---------------------------------------------------------------------------------------------
+
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27389/
 
