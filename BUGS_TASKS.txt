@@ -1,4 +1,34 @@
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27391
+
+
+WFTaskPripominkyComponent.xaml
+<Button x:Name="btnExport"
+        VerticalAlignment="Center"
+        btn:MDButtonTheme.MDIcon="FileMoveOutline"
+        Background="#F2F4F5"
+        Click="btnExport_Click"
+        Content="{x:Static p:Resources.strExport}">   ... tady se spouští export
+
+WorkflowPripominkyPrint .. tohle je zajímavé
+ReportServer.cs
+GetWorkflowPripominkyReport ... tohle hledat asi na API
+urlBuilder_.Append("api/Reports/workflowpripominky/data"); ... tohle je v TiskApiClient.cs v Reports_GetWorkflowPripominkyDataAsync
+
+samotné soubory reportů kde se dají editovat v designeru jsou
+v PCMReporting v TEST_NOVE_API
+Workflow.WorkflowPripominky.cs ... tohle je report
+
+data se přetahují přes ...
+GetWorkflowPripominkyReportResponse -> WFUlohaPripominkyVyjadreniDTO
+
+
+
+
+
+
+
+--------------------------------------------------------------------------------------------
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28642/
 
