@@ -1,4 +1,22 @@
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28936
+
+testing endpoints from TestApi
+http://localhost:5014/swagger/index.html
+
+Reports/mereni/hromadne/data/web ... třeba tento endpoint
+
+Bearer token vložit bez " 
+C:\Users\karel.skrabal\source\repos\Proconom\eConoM\Servers\ReportServer\ReportServer.cs
+pro měření např.
+public async Task<FileResponse> GetHromadnyZaznamStavbyReport(int stavbaId, int? polozkaId, int? objektId, bool dokumenty, DateTime? start, DateTime? finish, DateTime? datumPodpisu, string poznamka, bool cislovani, bool? odZadanehoObdobi, bool pouzeZamknuteZaznamy, bool pouzeSchvaleneZBV, bool raditDokumentyPerProtokol, CancellationToken cancellationToken)
+
+
+breakpoint do této metody
+jak se zastaví při otevření tisku z desktopu
+immediate winodw ... ProconomStaticClient.AuthorizedTiskClient._httpClient.DefaultRequestHeaders.Authorization.ToString()
+----------------------------------------------------------------------------------
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27391
 
 
