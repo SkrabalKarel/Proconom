@@ -15,6 +15,10 @@ public async Task<FileResponse> GetHromadnyZaznamStavbyReport(int stavbaId, int?
 breakpoint do této metody
 jak se zastaví při otevření tisku z desktopu
 immediate winodw ... ProconomStaticClient.AuthorizedTiskClient._httpClient.DefaultRequestHeaders.Authorization.ToString()
+
+format datumu je
+2024-01-31
+/api/Reports/mereni/Stavba/{StavbaId}/Polozka/{PolozkaId}/Start/{Start}/Finish/{Finish}/DokumentPrvku/{DokumentPrvku}/DatumPodpisu/{DatumPodpisu}/Cerpani/{Cerpani}/OznaceniObjektu/{OznaceniObjektu}/TypSestavy/{TypSestavy}/web
 ----------------------------------------------------------------------------------
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27391
