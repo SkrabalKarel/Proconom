@@ -1,0 +1,65 @@
+html notes
+<p></p>     ... paragraph
+<br>        ... break line
+<hr>        ... horizontal line
+<pre></pre> ... preformatted text
+
+<tagname style="property:value;"> ... style inlined
+<body style="background-color:powderblue;">
+<h1 style="font-family:verdana;">This is a heading</h1>
+<p style="font-size:160%;">This is a paragraph.</p>
+<p style="text-align:center;">Centered paragraph.</p>
+
+<!-- This is a comment -->
+<p>This <!-- great text --> is a paragraph.</p>
+
+Cascading Style Sheets (CSS) is used to format the layout of a webpage.
+The word cascading means that a style applied to a parent element will also apply 
+to all children elements within the parent.
+
+CSS can be added to HTML documents in 3 ways:
+Inline - by using the style attribute inside HTML elements
+Internal - by using a <style> element in the <head> section
+External - by using a <link> element to link to an external CSS file
+
+padding property defines a padding (space) between the text and the border
+margin property defines a margin (space) outside the border.
+
+p {
+  border: 2px solid powderblue;
+}
+
+<a href="url">link text</a> ... defines a hyperlink. 
+target attribute specifies where to open the linked document.
+_self - Default. Opens the document in the same window/tab as it was clicked
+_blank - Opens the document in a new window or tab
+_parent - Opens the document in the parent frame
+_top - Opens the document in the full body of the window
+
+<h2>Absolute URLs</h2>
+<p><a href="https://www.w3.org/">W3C</a></p>	
+<h2>Relative URLs</h2>
+<p><a href="html_images.asp">HTML Images</a></p>
+<p><a href="/css/default.asp">CSS Tutorial</a></p>
+
+
+To use an image as a link, just put the <img> tag inside the <a> tag
+<a href="default.asp">
+<img src="smiley.gif" alt="HTML tutorial" style="width:42px;height:42px;">
+</a>
+
+Use mailto: inside the href attribute to create a link that opens the user's email program
+<a href="mailto:someone@example.com">Send email</a>
+
+<button onclick="document.location='default.asp'">HTML Tutorial</button>
+
+title attribute specifies extra information most often shown as a tooltip text when the mouse moves over the element.
+<a href="https://www.w3schools.com/html/" title="Go to W3Schools HTML section">Visit our HTML Tutorial</a>
+
+
+Link to a page located in the html folder on the current web site: 
+<a href="/html/default.asp">HTML tutorial</a>
+Link to a page located in the same folder as the current page: 
+<a href="default.asp">HTML tutorial</a>
+
+
