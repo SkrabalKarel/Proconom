@@ -1,4 +1,80 @@
 
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28949
+
+složka připomínek se vytvoří v dané branch (jen pro testo) automaticky, najdu ji v DMS
+stejně jako fungují stávající notifikace (definováno na API) pro přídání souboru do složky,
+nastavit shodnou notifikaci pro jen přidání souboru do složky, pokusit se znovu použít i šablonu 
+mailu
+
+ The email notification chain after file upload:
+
+  1. DSlozkaDC.cs:322 — the primary trigger point. After DokumentyUploadHelper.UploadMultiple() completes and the node is a SLOZKA (folder), it calls:
+  await DokumentyServer.NotifyAfterBatch(dokumenty.Select(x => x.Kod).ToList(), this.Kod);
+  2. DocumentManager.cs:102 — second trigger point, used when files are inserted via the document manager (e.g. drag & drop, multi-file operations):
+  await server.NotifyAfterBatch(zDMS.Select(x => x.Kod).ToList(), folder.Kod);
+  2. Note: only fires for DMS documents on a stavba (PrvekTyp == TYP_UZLU.STAVBA) and only if the folder is not ROOT.
+  3. DokumentyServer.cs:253 — the actual API call:
+  ProconomStaticClient.AuthorizedClient.Dokumenty_SendNotificationDocumentBatchAsync(...)
+  3. This calls the backend (Test_Nove_API) which handles the actual email sending.
+
+  There are also additional callers in WinExcelView.xaml.cs, DokumentyWidgetControl.xaml.cs, WFTaskDocumentsComponent.xaml.cs, AddReklamace.xaml.cs, AddToDo.xaml.cs, and winRestoreDocuments.xaml.cs — each calling NotifyAfterBatch after
+   their specific upload scenarios.
+
+  The main one for the "folder upload triggers email" scenario is DSlozkaDC.cs:322.
+
+ Backend: Email notification after file upload
+
+  Full chain
+
+  POST documents/notification/batch/send
+          ↓
+  DokumentyController.SendNotificationDocumentBatch()     [DokumentyController.cs:636]
+          ↓  MediatR ResolveResponse
+  DocumentEmailUpdateHandler.Handle()                     [DocumentEmailUpdateHandler.cs:89]
+          ↓
+  DocumentEmailUpdateFactory.Make()                       [DocumentEmailUpdateFactory.cs:25]
+          ↓
+  EmailMessage.Send()  →  IEmailService.Send()            [NotificationMessage.cs:39]
+
+  ---
+  Step-by-step detail
+
+  1. Handler (DocumentEmailUpdateHandler.cs:89)
+  - Resolves the calling user and database from claims
+  - Finds the stavba the folder belongs to
+  - Loads the full folder path up to root (GetParentFolderPathIds)
+  - Queries DSlozkyNotifikace — finds all users who subscribed to notifications on any folder in the path with AfterUpdate = true, Perioda = null (immediate, not periodic), and who are not the uploader
+  - If nobody subscribed → returns early, no email sent
+  - Builds DocumentEmailUpdateModel per recipient, separating deleted vs. non-deleted documents
+  - Checks folder-level access: if a user lost access to the construction (CUzivateleStavbyPristup), their notification record is removed
+
+  2. Factory (DocumentEmailUpdateFactory.cs:25)
+  - Renders the email body via Razor view (IRazorViewFactory.GetEmailString)
+  - Builds the subject via ISubjectFactory.GetSubject
+  - Returns an EmailMessage instance
+
+  3. EmailMessage.Check() gate (NotificationMessage.cs:55)
+  Before sending, verifies:
+  - User has NotifikaceMail == true in their settings
+  - User has a valid email (BadMail override OR CUzivatele.Email)
+
+  4. IEmailService.Send() (NotificationMessage.cs:43)
+  The actual SMTP/provider send — implemented behind IEmailService.
+
+  ---
+  Key database table
+
+  DSlozkyNotifikace — per-user, per-folder subscription record:
+  - KUzivatel — who subscribed
+  - KDokument — which folder
+  - AfterUpdate — notify on upload
+  - AfterDelete — notify on delete
+  - Perioda — null = immediate; value = periodic digest
+
+
+-----------------------------------------------------------------------------------
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28936
 
 testing endpoints from TestApi
