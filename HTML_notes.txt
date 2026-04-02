@@ -62,4 +62,7 @@ Link to a page located in the html folder on the current web site:
 Link to a page located in the same folder as the current page: 
 <a href="default.asp">HTML tutorial</a>
 
+continue ... at https://www.w3schools.com/html/html_examples.asp HTML Tables
+
+
 
