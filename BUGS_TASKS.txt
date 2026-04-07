@@ -95,6 +95,131 @@ immediate winodw ... ProconomStaticClient.AuthorizedTiskClient._httpClient.Defau
 format datumu je
 2024-01-31
 /api/Reports/mereni/Stavba/{StavbaId}/Polozka/{PolozkaId}/Start/{Start}/Finish/{Finish}/DokumentPrvku/{DokumentPrvku}/DatumPodpisu/{DatumPodpisu}/Cerpani/{Cerpani}/OznaceniObjektu/{OznaceniObjektu}/TypSestavy/{TypSestavy}/web
+
+
+
+What was the problem?
+
+  The two report handlers — GetHromadnyZaznamMereniDataHandler (desktop = WPF, outputs .prnx) and GetHromadnyZaznamMereniDataHandlerWeb (web, outputs .pdf) — had
+  near-identical logic (~120 lines each, copy-pasted). The only difference was the final export step (.SaveDocument() vs .ExportToPdf()). Classic duplication.
+
+  ---
+  What was done
+
+  1. Enums.cs — new enum OUTPUT_FORMAT
+
+  public enum OUTPUT_FORMAT { Prnx, Pdf, Word, Excel, Dms }
+  Defines the supported output formats. Word, Excel, Dms are already planned but commented out in Program.cs.
+
+  ---
+  2. IOutputFormatter.cs — new interface (Strategy pattern)
+
+  public interface IOutputFormatter
+  {
+      Task<FileResponsePCM> ExportAsync(XtraReport report, string baseFileName);
+  }
+  Abstracts the "how do I turn an XtraReport into a file response" concern. Each format is a separate implementation.
+
+  ---
+  3. PrnxFormatter.cs + PdfFormatter.cs — two new Strategy implementations
+
+  - PrnxFormatter — calls report.SaveDocument(ms) → returns HromadnyZaznamMereni.prnx
+  - PdfFormatter — calls report.ExportToPdf(ms) → returns HromadnyZaznamMereni.pdf
+
+  Both return a FileResponsePCM with ContentType = "application/octet-stream".
+
+  ---
+  4. GetHromadnyZaznamMereniHandlerBase.cs — new abstract base class
+
+  Extracted the shared logic from both handlers into two protected methods:
+
+  - FetchReportDataAsync() — sends GetHromadnyZaznamMereniReportRequest via MediatR and returns the data
+  - BuildCompositeReport() — constructs the final XtraReport (handles DokumentPrvku, RaditDokumentyPerProtokol, attachments, etc.)
+
+  Both handlers now inherit from this base class — no more duplication.
+
+  Two bugs fixed in the process:
+
+  ┌─────────────────────┬───────────────────────────────────────────────────────────────────────────────┬──────────────────────────────────────────────────────┐
+  │         Bug         │                                   Original                                    │                        Fixed                         │
+  ├─────────────────────┼───────────────────────────────────────────────────────────────────────────────┼──────────────────────────────────────────────────────┤
+  │ LINQ result         │ hromadnyZaznamMereniReport.Prilohy.OrderByDescending(...) (no .ToList()) —    │ data.Prilohy =                                       │
+  │ discarded           │ result thrown away                                                            │ data.Prilohy.OrderByDescending(...).ToList()         │
+  ├─────────────────────┼───────────────────────────────────────────────────────────────────────────────┼──────────────────────────────────────────────────────┤
+  │ MemoryStream not    │ MemoryStream ms = new() without using in desktop handler                      │ using MemoryStream ms = new() in base class          │
+  │ disposed            │                                                                               │                                                      │
+  └─────────────────────┴───────────────────────────────────────────────────────────────────────────────┴──────────────────────────────────────────────────────┘
+
+  ---
+  5. GetHromadnyZaznamMereniDataHandler.cs — refactored (desktop handler)
+
+  Before: 80+ lines of inline logic.
+  After: 10 lines.
+
+  // Constructor — injects PrnxFormatter by key
+  [FromKeyedServices(OUTPUT_FORMAT.Prnx)] IOutputFormatter formatter
+
+  // Handle
+  GetHromadnyZaznamMereniResponse data = await FetchReportDataAsync(request, cancellationToken);
+  using XtraReport composite = BuildCompositeReport(request, data);
+  return await _formatter.ExportAsync(composite, "HromadnyZaznamMereni");
+
+  Desktop is hardwired to Prnx — correct, WPF opens .prnx in the DevExpress report viewer.
+
+  ---
+  6. GetHromadnyZaznamMereniRequestWeb — Format property added
+
+  public class GetHromadnyZaznamMereniRequestWeb : GetHromadnyZaznamMereniRequest
+  {
+      public OUTPUT_FORMAT Format { get; set; } = OUTPUT_FORMAT.Pdf;
+  }
+
+  Web callers can now choose the output format. Default = PDF.
+
+  ---
+  7. GetHromadnyZaznamMereniDataHandlerWeb — refactored (web handler)
+
+  Before: 80+ lines of inline logic.
+  After: 8 lines.
+
+  // Constructor — injects IServiceProvider to resolve formatter at runtime
+  public GetHromadnyZaznamMereniDataHandlerWeb(..., IServiceProvider sp)
+
+  // Handle
+  GetHromadnyZaznamMereniResponse data = await FetchReportDataAsync(request, cancellationToken);
+  using XtraReport composite = BuildCompositeReport(request, data);
+  IOutputFormatter formatter = _sp.GetRequiredKeyedService<IOutputFormatter>(request.Format);
+  return await formatter.ExportAsync(composite, "HromadnyZaznamMereni");
+
+  Web resolves the formatter dynamically at runtime based on request.Format — flexible for future Word/Excel/DMS support.
+
+  ---
+  8. Program.cs — DI registrations
+
+  builder.Services.AddKeyedSingleton<IOutputFormatter, PdfFormatter>(OUTPUT_FORMAT.Pdf);
+  builder.Services.AddKeyedSingleton<IOutputFormatter, PrnxFormatter>(OUTPUT_FORMAT.Prnx);
+  // builder.Services.AddKeyedSingleton<IOutputFormatter, WordFormatter>(OUTPUT_FORMAT.Word);   // bude se implementovat
+  // builder.Services.AddKeyedSingleton<IOutputFormatter, ExcelFormatter>(OUTPUT_FORMAT.Excel); // bude se implementovat
+  // builder.Services.AddKeyedSingleton<IOutputFormatter, DmsFormatter>(OUTPUT_FORMAT.Dms);     // bude se implementovat
+
+  Keyed singletons — each OUTPUT_FORMAT enum value maps to its formatter. Adding a new format in the future = add one line here + one new class.
+
+  ---
+  Summary
+
+  ┌───────────────────────────┬──────────────────────────────────────┬───────────────────────────────────────┐
+  │          Aspect           │                Before                │                 After                 │
+  ├───────────────────────────┼──────────────────────────────────────┼───────────────────────────────────────┤
+  │ Code duplication          │ ~120 lines copy-pasted in 2 handlers │ Shared base class                     │
+  ├───────────────────────────┼──────────────────────────────────────┼───────────────────────────────────────┤
+  │ Output format flexibility │ Hardcoded per handler                │ Runtime-selectable via request.Format │
+  ├───────────────────────────┼──────────────────────────────────────┼───────────────────────────────────────┤
+  │ Adding new format         │ Edit both handlers                   │ Add 1 class + 1 DI line               │
+  ├───────────────────────────┼──────────────────────────────────────┼───────────────────────────────────────┤
+  │ LINQ bug                  │ Prilohy ordering silently discarded  │ Fixed                                 │
+  ├───────────────────────────┼──────────────────────────────────────┼───────────────────────────────────────┤
+  │ MemoryStream leak         │ Not disposed in desktop handler      │ Fixed with using                      │
+  └───────────────────────────┴──────────────────────────────────────┴───────────────────────────────────────┘
 ----------------------------------------------------------------------------------
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27391
