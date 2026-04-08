@@ -1,4 +1,88 @@
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29001/
 
+
+in wpf ui in ucStavbaNastaveni.xaml there is dgSPravama that contains list of users that have access to that construction and dgBezPrav that just contains users with no rights to that construction. In StavbySectionControl.xaml is TreeView tvStavby if an user via context menu Treeview_Context_Opening chose to create a public constructions, then dgBezPrav is empty and dgSPravama contains all users cause is public one! That's the problem, now public constructions contains only 1 user in dgSPravama that user that just that constructions created, we need to have all users in. Summarize the task 
+
+
+ FILE: EFModels/CustomModels/SStavby.cs
+  METHOD: SStavby.Create()
+  CHANGE: Removed else construction.InheritParentAccess(ctx) — for public constructions CUzivateleStavbyPristup now stays empty, so all users pass the deny-table filter in both TreeView
+  APIs and GetStavbaUsersPermissionsHandler.
+
+  INTENTIONALLY UNCHANGED — InheritParentAccess() method itself
+  The method still exists in the file. It has an internal logic bug (! negation is inverted) but since it is now unreachable from Create() and there are no other callers, leaving it is
+  safe. Deleting it would be a refactor beyond the scope of this fix.
+
+❯ explain me SStavby.cs where last changes were done
+
+● Read 1 file (ctrl+o to expand)
+
+● This is a partial class — meaning this file adds extra methods on top of SStavby which is the EF entity generated from the database. Think of it like WPF code-behind: the generated part
+  is the XAML-generated class, this file adds the business logic on top.
+
+  ---
+  The core concept — inverted access table
+
+  CUzivateleStavbyPristup is a deny table, not an access table. It stores who is blocked:
+
+  User NOT in table → has access ✓
+  User IN table     → denied ✗
+
+  This is the opposite of what you might expect. The method HasAccess (line 88) makes it clear:
+
+  public bool HasAccess(int userId)
+  {
+      return !CUzivateleStavbyPristup.Any(x => x.KUzivatel == userId);
+      // "I have access if I am NOT in the deny list"
+  }
+
+  WPF analogy: imagine a blacklist — if your name is on it, you're out. If the list is empty, everyone is allowed in.
+
+  ---
+  Create() — line 20
+
+  The factory method. Called every time a construction is created. It:
+
+  1. Checks permissions (lines 24–28) — can this user create a construction? Can they create a public one?
+  2. Sets basic properties (lines 30–34) — code, name, parent utvar, creator
+  3. Decides who gets blocked (lines 36–38) — this is the piece we changed
+  4. Creates the "everyone" DMS group (line 41) — document permission group for all users
+
+  ---
+  The private vs public branch — the change we made
+
+  Private construction (soukromaOsoba != null):
+
+  construction.UpdateSoukromaOsoba(soukromaOsoba, ctx.CUzivatele.Where(x => x.XId != soukromaOsoba.XId));
+
+  UpdateSoukromaOsoba (line 181) takes the owner and a list of everyone else, then adds every other user to CUzivateleStavbyPristup. Result: only the owner has access, everyone else is
+  blocked.
+
+  Public construction (before fix):
+
+  construction.InheritParentAccess(ctx);   // ← was here, now removed
+
+  InheritParentAccess (line 66) was supposed to inherit access restrictions from the parent utvar — but had the logic inverted (the ! on line 73 was backwards), so it ended up blocking
+  most users instead of nobody. Both bugs came from here.
+
+  Public construction (after fix):
+
+  // public construction: CUzivateleStavbyPristup stays empty — all users have access
+
+  Nothing is added to the deny table. Empty table = nobody blocked = everyone sees the construction in the TreeView and appears in dgSPravama.
+
+  ---
+  AddZakazanyPristup() — line 54
+
+  Helper that adds one user to the deny table. Checks first if the user is already there to avoid duplicates. Called by UpdateSoukromaOsoba in a loop for private constructions.
+
+  ---
+  InheritParentAccess() — line 66
+
+  Still exists in the file, now unreachable from Create(). Has an internal logic bug (misleading variable name + wrong ! negation on line 73 — the comment says "users who DON'T have parent
+   utvar access" but the code selects users who DO have it). Left as-is since it is no longer called.
+
+-----------------------------------------------------------------------------------------------
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28949
 
