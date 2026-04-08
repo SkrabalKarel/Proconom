@@ -1,3 +1,11 @@
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29003/
+
+In ucSlozkovaStruktura.xaml is btnZalozStrukturu that has btnZalozStrukturu_Click that adds a new item to the end of lvSablony. The task is to add a new item to the begining of the listView, not to the end. Summarize, ask for addiditional information if propt is fully descriptive.
+
+-------------------------------------------------------------------------------------------------
+
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29001/
 
 
