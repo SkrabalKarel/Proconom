@@ -1,3 +1,11 @@
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29038/
+
+
+wpf ui in WorkFlowReporting.xaml is dpDeadlineUkolu (and also dpDeadlineInformovane) control, when the DatePicker dialog is opened, shows english names of months and day,
+must be in current language mutation. I suppos based on currently logged user, so in UcGlobalNastaveni.xaml in chbJazyk, there is currently set language, I would guess all dialogs
+in app should follow this language setting.
+
+------------------------------------------------------------------------------------------------
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29003/
 
