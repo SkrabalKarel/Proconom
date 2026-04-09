@@ -1,5 +1,7 @@
 
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29036/
+
 widget-tisk-stavba-web-variants.md (13:52) — Updated the WidgetTiskStavba web variant coverage table (10 buttons, which have /web variants, which
   don't; buttons #8 and #10 TiskDesktopController refactoring proposal status).
 
