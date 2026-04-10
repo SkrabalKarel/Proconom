@@ -5,6 +5,15 @@ https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29036/
 widget-tisk-stavba-web-variants.md (13:52) — Updated the WidgetTiskStavba web variant coverage table (10 buttons, which have /web variants, which
   don't; buttons #8 and #10 TiskDesktopController refactoring proposal status).
 
+
+
+ Now I will in 2.steps  specify what is task in current branch and what would be the functionality in that other branch : 1.step - I am about implementing changes saved
+   to *.md, you should find it as widget-tisk-stavba-web-variants.md (13:52) — Updated the WidgetTiskStavba web variant coverage table (10 buttons, which have /web
+  variants, which
+    don't; buttons #8 and #10 TiskDesktopController refactoring proposal status). 2.step in repo api, branch
+  develop_28936_ksk_endpointyMereniWeb, commits 58aaeeb4a6aa99906b64bf6dd162b637db3d6ddb  , 7687949ab5523340e20363119b2a0609046af6d6 ,
+  1c65f8aee0d09aece9b6cd3c21a74aec7a7ad74e , a919afc4e8cfa73099a824e4c21fdaf5944edf27 would be usefull to use this functionality created by this commits?
+
 --------------------------------------------------------------------------------------
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29038/
