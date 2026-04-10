@@ -1,4 +1,117 @@
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28860/
 
+
+Kde se všude dá odstranit soubor ze složky!!!!!!!!!!!!!!
+
+
+Níže máš slíbený **TAHÁK** pro **variantu 1 = fyzicky smazat soubor ze složky v DMS** (tj. odstranit soubor z úložiště), a to včetně „cest“ z modulů **ZBV / ESD / Rozpočet / Měření**. [\[fr-prod.as...rosoft.com\]](https://fr-prod.asyncgw.teams.microsoft.com/v1/objects/0-frca-d15-21a22fbf97a276ae6484e4cbfa711f28/views/original/crop_docs.png)
+
+***
+
+# 🧾 TAHÁK: Kde a jak smazat dokument **ze složky (DMS)**
+
+## Základní pravidlo (pro „fyzické smazání“)
+
+✅ **Fyzické mazání souboru ze složky** se dělá v **Dokumenty → DMS** (nebo v dialogu, který z jiného modulu otevře přímo DMS). Modul Dokumenty (DMS) má mezi standardními akcemi nad souborem i **odstranění**. [\[fr-prod.as...rosoft.com\]](https://fr-prod.asyncgw.teams.microsoft.com/v1/objects/0-frca-d15-21a22fbf97a276ae6484e4cbfa711f28/views/original/crop_docs.png)
+
+> **Pozor na záložku „Dokumenty prvku“**: ta slouží k archivaci/vazbám na prvek; pro „smazání ze složky“ vždy přepni na **DMS**. [\[fr-prod.as...rosoft.com\]](https://fr-prod.asyncgw.teams.microsoft.com/v1/objects/0-frca-d15-21a22fbf97a276ae6484e4cbfa711f28/views/original/crop_docs.png)
+
+***
+
+## 1) 📁 Univerzální cesta (funguje vždy): **Dokumenty → DMS**
+
+*(nejjistější a obecná cesta pro smazání libovolného souboru ze složky)* [\[fr-prod.as...rosoft.com\]](https://fr-prod.asyncgw.teams.microsoft.com/v1/objects/0-frca-d15-21a22fbf97a276ae6484e4cbfa711f28/views/original/crop_docs.png)
+
+**Klikací cesta:**
+
+1.  **Manažer staveb** → vyber **stavbu**
+2.  Otevři modul **Dokumenty**
+3.  Přepni na záložku **DMS** (strom složek)
+4.  Najdi složku → označ soubor
+5.  Smaž soubor jedním z typických způsobů:
+    *   **Tlačítko „Odstranit“** v horní liště (aktivuje se po výběru souboru) [\[fr-prod.as...rosoft.com\]](https://fr-prod.asyncgw.teams.microsoft.com/v1/objects/0-frca-d15-21a22fbf97a276ae6484e4cbfa711f28/views/original/crop_docs.png)
+    *   nebo **pravé tlačítko na soubor (kontextové menu)** → „Odstranit“ (obecná logika UI, manuál pracuje s kontextovými menu napříč aplikací) [\[fr-prod.as...rosoft.com\]](https://fr-prod.asyncgw.teams.microsoft.com/v1/objects/0-frca-d15-21a22fbf97a276ae6484e4cbfa711f28/views/original/crop_docs.png)
+
+***
+
+## 2) 🧾 ZBV (Změny): **ZBV → Dokumenty (dialog) → DMS → Odstranit**
+
+Na tvém screenshotu je vidět, že v modulu **Změny (ZBV)** lze otevřít okno **Dokumenty** a přepnout na **DMS** – a je tam i tlačítko **„Odstranit“** (mazání). *(dle screenshotu)*
+
+**Klikací cesta (prakticky):**
+
+1.  Otevři **Změny (ZBV)** → vyber konkrétní ZBV
+2.  Otevři okno **Dokumenty** (tak jak to máš na screenshotu)
+3.  V okně Dokumenty přepni na **DMS**
+4.  Vyber soubor ve složce
+5.  Klikni **„Odstranit“** (nebo kontextové menu na souboru → odstranit)
+
+> Manuál potvrzuje existenci práce s dokumenty a DMS operací v modulu Dokumenty (včetně odstranění) a že ZBV pracuje s dokumenty (např. nahrávání PDF do ZBV detailu). [\[fr-prod.as...rosoft.com\]](https://fr-prod.asyncgw.teams.microsoft.com/v1/objects/0-frca-d15-21a22fbf97a276ae6484e4cbfa711f28/views/original/crop_docs.png)
+
+***
+
+## 3) 🏗️ ESD (Stavební deník): **ESD → Správa dokumentů (ikona složky) → DMS → Odstranit**
+
+Manuál přímo uvádí, že v ESD je vstup do **správy dokumentů** přes **ikonu složky**. [\[fr-prod.as...rosoft.com\]](https://fr-prod.asyncgw.teams.microsoft.com/v1/objects/0-frca-d15-21a22fbf97a276ae6484e4cbfa711f28/views/original/crop_docs.png)
+
+**Klikací cesta:**
+
+1.  **Manažer staveb** → stavba → otevři **Stavební deník (ESD)**
+2.  Klikni na **ikonu složky** = **Správa dokumentů** [\[fr-prod.as...rosoft.com\]](https://fr-prod.asyncgw.teams.microsoft.com/v1/objects/0-frca-d15-21a22fbf97a276ae6484e4cbfa711f28/views/original/crop_docs.png)
+3.  Pokud se otevře stejné/analogické okno Dokumenty:
+    *   přepni na **DMS**
+    *   vyber soubor
+    *   **Odstranit**
+4.  Když se otevře jen seznam bez „Odstranit“:
+    *   použij univerzální cestu **Dokumenty → DMS** a smaž soubor tam [\[fr-prod.as...rosoft.com\]](https://fr-prod.asyncgw.teams.microsoft.com/v1/objects/0-frca-d15-21a22fbf97a276ae6484e4cbfa711f28/views/original/crop_docs.png)
+
+***
+
+## 4) 📏 Měření: **Měření → (zjisti název přílohy) → Dokumenty → DMS → Odstranit**
+
+Manuál uvádí, že v modulu **Měření** se pracuje s fotodokumentací a lze nahrávat PDF/JPEG dokumenty.   
+Ale pro **fyzické smazání ze složky** je opět jistota **DMS**. [\[fr-prod.as...rosoft.com\]](https://fr-prod.asyncgw.teams.microsoft.com/v1/objects/0-frca-d15-21a22fbf97a276ae6484e4cbfa711f28/views/original/crop_docs.png)
+
+**Klikací cesta:**
+
+1.  **Měření** → otevři položku/záznam → zjisti **název souboru** (příloha)
+2.  Přejdi do **Dokumenty → DMS** [\[fr-prod.as...rosoft.com\]](https://fr-prod.asyncgw.teams.microsoft.com/v1/objects/0-frca-d15-21a22fbf97a276ae6484e4cbfa711f28/views/original/crop_docs.png)
+3.  Najdi soubor (buď ve správné složce, nebo přes vyhledávání)
+4.  **Odstranit**
+
+***
+
+## 5) 💰 Rozpočet: **Rozpočet → (kontext stavby) → Dokumenty → DMS → Odstranit**
+
+Rozpočet modul v manuálu popisuje hlavně strukturu rozpočtu a položky; pro práci se soubory ve složkách je opět „obecné“ místo **Dokumenty/DMS**. [\[fr-prod.as...rosoft.com\]](https://fr-prod.asyncgw.teams.microsoft.com/v1/objects/0-frca-d15-21a22fbf97a276ae6484e4cbfa711f28/views/original/crop_docs.png)
+
+**Klikací cesta:**
+
+1.  **Rozpočet** (na dané stavbě) → když potřebuješ smazat dokument ze složky…
+2.  …jdi do **Dokumenty → DMS**
+3.  Najdi soubor → **Odstranit** [\[fr-prod.as...rosoft.com\]](https://fr-prod.asyncgw.teams.microsoft.com/v1/objects/0-frca-d15-21a22fbf97a276ae6484e4cbfa711f28/views/original/crop_docs.png)
+
+***
+
+# ✅ Rychlé shrnutí „kde fyzicky mažu soubor ze složky“
+
+*   **Dokumenty → DMS** (hlavní univerzální místo pro mazání souborů ze složek) [\[fr-prod.as...rosoft.com\]](https://fr-prod.asyncgw.teams.microsoft.com/v1/objects/0-frca-d15-21a22fbf97a276ae6484e4cbfa711f28/views/original/crop_docs.png)
+*   **ZBV → Dokumenty (dialog) → DMS → Odstranit** *(potvrzeno tvým screenshotem)*
+*   **ESD → Správa dokumentů (ikona složky) → DMS → Odstranit** (vstup do správy dokumentů je v manuálu) [\[fr-prod.as...rosoft.com\]](https://fr-prod.asyncgw.teams.microsoft.com/v1/objects/0-frca-d15-21a22fbf97a276ae6484e4cbfa711f28/views/original/crop_docs.png)
+*   **Měření / Rozpočet**: fyzické mazání řeš přes **Dokumenty → DMS** [\[fr-prod.as...rosoft.com\]](https://fr-prod.asyncgw.teams.microsoft.com/v1/objects/0-frca-d15-21a22fbf97a276ae6484e4cbfa711f28/views/original/crop_docs.png)
+
+***
+
+## 🔐 Poznámka k oprávněním (typický důvod, proč „Odstranit“ nevidíš)
+
+Manuál zmiňuje, že viditelnost/akce nad dokumenty mohou být řízené právy administrátorem. Pokud tedy **„Odstranit“** chybí nebo je šedé, bývá to často **právy**. [\[fr-prod.as...rosoft.com\]](https://fr-prod.asyncgw.teams.microsoft.com/v1/objects/0-frca-d15-21a22fbf97a276ae6484e4cbfa711f28/views/original/crop_docs.png)
+
+
+
+
+
+
+------------------------------------------------------------------------------------------
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29036/
 
