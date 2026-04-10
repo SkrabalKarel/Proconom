@@ -1,3 +1,19 @@
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29027/
+
+ How to resume next session:
+
+  Simply start a new conversation with Claude Code — memory loads automatically. Everything in MEMORY.md is always injected into context at session start.
+
+  If you want to explicitly force a context refresh mid-session, use the command:
+
+  /refresh-context
+
+  This is a skill available in this project that reloads the CLAUDE.md files.
+
+
+-----------------------------------------------------------------------------------------
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28860/
 
 
