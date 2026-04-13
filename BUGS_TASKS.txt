@@ -1,4 +1,19 @@
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28653
+
+The VideoHelpClient source is not in your local source/repos directory — it's a compiled DLL only (bin/Debug/VideoHelpClient.dll). The phone number is hardcoded inside that external library's source, which
+  lives elsewhere (likely a separate repository not checked out here).
+
+  The window "VIDEO NÁPOVĚDA" with the phone number is entirely owned by VideoHelpClient.VideoHelpWindow. To remove the phone number you need to find and edit that project's source — it's not in the Proconom
+  repo.
+
+  Do you know where the VideoHelpClient source repository is located?
+
+
+<Button x:Name="btnHelp"
+
+------------------------------------------------------------------------------------------
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29027/
 
  How to resume next session:
