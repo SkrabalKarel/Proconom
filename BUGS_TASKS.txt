@@ -12,6 +12,12 @@ https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29027/
   This is a skill available in this project that reloads the CLAUDE.md files.
 
 
+upload se zobrazuje takto ....
+
+ListView lvUpload in TransferWindow, this item in resource Resources.resx is used strPrevodDoPDF
+
+
+
 -----------------------------------------------------------------------------------------
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28860/
