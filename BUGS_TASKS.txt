@@ -251,6 +251,9 @@ in wpf ui in ucStavbaNastaveni.xaml there is dgSPravama that contains list of us
   Still exists in the file, now unreachable from Create(). Has an internal logic bug (misleading variable name + wrong ! negation on line 73 — the comment says "users who DON'T have parent
    utvar access" but the code selects users who DO have it). Left as-is since it is no longer called.
 
+9146194a0414feadb299375cfbc7240a1a9316d2
+32bba49171e029b9520d23772c0cbe966159f40c
+
 -----------------------------------------------------------------------------------------------
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28949
