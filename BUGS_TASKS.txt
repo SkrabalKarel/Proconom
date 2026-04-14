@@ -1,4 +1,53 @@
 
+------------------------------------------------------------------------------------------------
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28936
+
+
+Root cause
+
+  IKeyedServiceProvider is not registered in the .NET DI container — only IServiceProvider is auto-registered. The change in the PR commit replaced IServiceProvider with IKeyedServiceProvider, which breaks DI
+   validation.
+
+  The method GetRequiredKeyedService<T>(key) is an extension method on IServiceProvider (from ServiceProviderKeyedServiceExtensions), so IKeyedServiceProvider is not needed at all.
+
+ Both GetHromadnyZaznamMereniDataHandlerWeb and GetDataProVymeruProvedenychPraciHandlerWeb have IKeyedServiceProvider in their constructor — change both to IServiceProvider. That's the entire fix.
+
+Simple explanation
+
+  The DI container is like a registry of services
+
+  When the app starts, .NET registers all services into a container — a dictionary of "here's what I can provide when someone asks."
+
+  IServiceProvider is automatically registered — it's the container itself. Any class can ask for it in its constructor and .NET will hand it over.
+
+  IKeyedServiceProvider is a sub-interface of IServiceProvider (adds support for named/keyed lookups). But .NET does not register it separately. If a class asks for it in its constructor, .NET looks in the
+  registry, finds nothing, and throws.
+
+  ---
+  The method confusion
+
+  GetRequiredKeyedService<T>(key) — this is just an extension method sitting on top of IServiceProvider. Think of it like a helper function:
+
+  // Defined as extension on IServiceProvider:
+  public static T GetRequiredKeyedService<T>(this IServiceProvider sp, object key) { ... }
+
+  So you call it on IServiceProvider — you never need IKeyedServiceProvider directly.
+
+  ---
+  What went wrong
+
+  Someone thought: "I'm using keyed services, so I should inject the keyed version of the provider."
+
+  That logic sounds reasonable but is wrong. The keyed lookup capability comes from the extension method, not from the type you inject. IServiceProvider is enough.
+
+  Analogy: You don't need a "sports car driver's license" to press the sport mode button on a regular car. The regular license + the button is all you need.
+
+
+
+------------------------------------------------------------------------------------------------------
+
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28653
 
 The VideoHelpClient source is not in your local source/repos directory — it's a compiled DLL only (bin/Debug/VideoHelpClient.dll). The phone number is hardcoded inside that external library's source, which
