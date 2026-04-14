@@ -61,6 +61,61 @@ The VideoHelpClient source is not in your local source/repos directory — it's 
 
 <Button x:Name="btnHelp"
 
+
+Why your manual copy doesn't work
+
+  Proconom references VideoHelpClient as a NuGet package (version 2.0.399), not as a file reference:
+
+  <!-- Proconom/eConoM/PROCONOM.csproj -->
+  <PackageReference Include="VideoHelpClient" Version="2.0.399" />
+
+  Every time you build, MSBuild resolves the DLL from the NuGet package cache:
+  C:\Users\karel.skrabal\.nuget\packages\videohelpclient\2.0.399\lib\net471\VideoHelpClient.dll
+
+  It then copies that cached DLL into bin\Debug\. So your manually placed DLL in bin\Debug\ gets overwritten on every build by the cached package version.
+
+  ---
+  The right procedure
+
+  Option A — For local testing only (quick)
+
+  Copy your freshly built DLL directly into the NuGet cache, replacing the cached version:
+
+  C:\Users\karel.skrabal\.nuget\packages\videohelpclient\2.0.399\lib\net471\VideoHelpClient.dll
+  C:\Users\karel.skrabal\.nuget\packages\videohelpclientbase\2.0.399\lib\net471\VideoHelpClientBase.dll
+
+  NuGet will not re-download if the version is already present in the cache. Build Proconom → MSBuild picks up your modified DLL from cache → copies it to bin\Debug\.
+
+  Option B — Proper/permanent flow
+
+  1. Make changes in Proconom_Desktop_2
+  2. Build Proconom_Desktop_2 (Release)
+  3. Pack a new NuGet package (bump version, e.g. 2.0.400)
+  4. Push to the internal Proconom feed (http://192.168.4.19/...)
+  5. Update version in PROCONOM.csproj and OSharedControlsWPF.csproj → NuGet restore
+
+  ---
+  For your immediate need: Option A is fastest. Build Proconom_Desktop_2, then copy the output DLLs to the NuGet cache paths above, then rebuild Proconom.
+
+
+For Release build it would be:
+  VideoHelpClient\bin\Release\net471\VideoHelpClient.dll
+  VideoHelpClientBase\bin\Release\net471\VideoHelpClientBase.dll
+
+  ---
+  Full procedure (Option A — quick local test)
+
+  1. Build Proconom_Desktop_2 in VS (Debug or Release)
+  2. Copy the two net471 DLLs to the NuGet cache (replacing the old version):
+  C:\Users\karel.skrabal\.nuget\packages\videohelpclient\2.0.399\lib\net471\VideoHelpClient.dll
+  C:\Users\karel.skrabal\.nuget\packages\videohelpclientbase\2.0.399\lib\net471\VideoHelpClientBase.dll
+  3. Rebuild Proconom — MSBuild picks from cache → copies to bin\Debug\ → your change is live
+
+  The bin\Debug\ and bin\Release\ paths in Proconom are just MSBuild copy destinations, never the source of truth.
+
+
+
+
 ------------------------------------------------------------------------------------------
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29027/
