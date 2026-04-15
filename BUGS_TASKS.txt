@@ -1,4 +1,328 @@
 
+
+
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28964
+
+
+prompt :
+in wpf ui in Login.xaml is ....
+
+answer to prompt :
+Revised Proposal — Schválené ZBV v informacích stavby
+
+  Architecture summary
+
+  The setting travels: DB column → EF model → WCF Service1.cs (read) / UpdateUserSettingsHandler (write) → UzivatelNastaveniDC → NSwag → WPF UzivatelNastaveniDTO. The GetCenyStavby
+  endpoint is already in ManagerStavebController.cs (the non-Desktop controller), so adding schvaleneOnly as a query param automatically satisfies the web variant requirement — no second
+  controller needed.
+
+  ---
+  PREREQUISITE — DB column (Karel adds manually)
+
+  ALTER TABLE Data_Master.dbo.c_uzivatele_nastaveni
+  ADD zbv_info_schvalene BIT NOT NULL DEFAULT 0;
+
+  ---
+  PHASE 1 — API (implement now)
+
+  ---
+  Step 1 — EF model: add column property
+
+  FILE: Test_Nove_API/EFModels/Models/CUzivateleNastaveni.cs
+  AFTER: line 32 (public bool? ZbvSouhrne { get; set; })
+
+  public bool? ZbvInfoSchvalene { get; set; }
+
+  ---
+  Step 2 — Base DTO: add field
+
+  FILE: Test_Nove_API/PROCONOMServerFace/ServiceReference1/UzivatelNastaveniDC.cs
+  AFTER: line 25 (public bool ZBVPoObjektech { get; set; } = false;)
+
+  public bool ZahrnoutPouzeSchvaleneZBV { get; set; } = false;
+
+  ---
+  Step 3 — Save handler: map DTO → EF
+
+  FILE: Test_Nove_API/TestApi/v1/Modules/Users/Handlers/UpdateUserSettingsHandler.cs
+  AFTER: line 49 (uzivNastaveni.ZbvSouhrne = req.Nastaveni.ZBVPoObjektech;)
+
+  uzivNastaveni.ZbvInfoSchvalene = req.Nastaveni.ZahrnoutPouzeSchvaleneZBV;
+
+  ---
+  Step 4 — WCF read-back: map DB row → DTO (two places)
+
+  FILE: Test_Nove_API/CustomUsernamePasswordAuth.Service/Service1.cs
+
+  CHANGED — occurrence #1 (line 3214 block — the if branch with full user settings)
+  AFTER: line 3214 (ZBVPoObjektech = ...)
+
+  ZahrnoutPouzeSchvaleneZBV = x.Field<bool?>("zbv_info_schvalene") != null ? x.Field<bool?>("zbv_info_schvalene").Value : false,
+
+  CHANGED — occurrence #2 (line 3266 block — the else branch)
+  AFTER: line 3266 (ZBVPoObjektech = ...)
+
+  ZahrnoutPouzeSchvaleneZBV = x.Field<bool?>("zbv_info_schvalene") != null ? x.Field<bool?>("zbv_info_schvalene").Value : false,
+
+  Why both: The if branch reads the full row (user has a personal settings record); the else branch reads a default/fallback row. Both must return the setting or the WPF will always see
+  false after a cold login.
+
+  ---
+  Step 5 — GetRPols: add ThenIncludes for KZbvNavigation
+
+  FILE: Test_Nove_API/EFModels/CustomModels/SStavby.cs
+  METHOD: SStavbyPrice.GetRPols() (around line 553)
+
+  CURRENT:
+  List<RPol> pols = ctx.RPol
+      .Include(x => x.ZbvPol)
+      .Include(x => x.SSdPol)
+      .Include(x => x.PPol)
+          .ThenInclude(x => x.KZpNavigation.FFakturyPol)
+      .Where(x => x.KStavba == Entity.XId)
+      .AsSplitQuery()
+      .AsNoTracking()
+      .ToList();
+
+  REPLACE WITH:
+  List<RPol> pols = ctx.RPol
+      .Include(x => x.ZbvPol)
+          .ThenInclude(z => z.KZbvNavigation)
+      .Include(x => x.SSdPol)
+          .ThenInclude(z => z.KZbvNavigation)
+      .Include(x => x.PPol)
+          .ThenInclude(x => x.KZpNavigation.FFakturyPol)
+      .Include(x => x.PPol)
+          .ThenInclude(x => x.KZpNavigation.KZbvNavigation)
+      .Where(x => x.KStavba == Entity.XId)
+      .AsSplitQuery()
+      .AsNoTracking()
+      .ToList();
+
+  Why 3 ThenIncludes: Three distinct navigation chains need KZbvNavigation.Stav:
+  - ZbvPol → KZbvNavigation — for GetPricesZbv()
+  - SSdPol → KZbvNavigation — for GetPricesZbvMereni()
+  - PPol → KZpNavigation → KZbvNavigation — for GetPricesZbvZp() and GetPricesZbvFaktury()
+
+  The PPol Include must be repeated as a new chain because ThenInclude from FFakturyPol can't branch — EF Core requires a new Include(x => x.PPol) root to reach a sibling of FFakturyPol.
+
+  INTENTIONALLY UNCHANGED — all other callers of GetRPols():
+  GetRPols() is an abstract method overridden only in SStavbyPrice. No other subclass is affected.
+
+  ---
+  Step 6 — PriceEntity: add schvaleneOnly filter to ZBV methods
+
+  FILE: Test_Nove_API/EFModels/Interfaces/PriceEntity.cs
+
+  Replace the following methods (full replacements shown):
+
+  GetPrices() — add parameter, propagate to all ZBV and Actual calls:
+
+  public virtual CenyStavbaDTO GetPrices(bool schvaleneOnly = false)
+  {
+      CenyStavbaDTO item = new();
+      item.Aktualni = GetPricesActual(schvaleneOnly);
+      item.AktualniNamereno = GetPricesActualMereni(schvaleneOnly);
+      item.AktualniCerpano = GetPricesActualZp(schvaleneOnly: schvaleneOnly);
+      item.AktualniFakturovano = GetPricesActualFaktury(schvaleneOnly);
+
+      item.Sod = GetPricesSoD();
+      item.SodNamereno = GetPricesSoDMereni();
+      item.SodCerpano = GetPricesSoDZp();
+      item.SodFakturovano = GetPricesSoDFaktury();
+
+      item.Zbv = GetPricesZbv(schvaleneOnly);
+      item.ZbvNamereno = GetPricesZbvMereni(schvaleneOnly);
+      item.ZbvCerpano = GetPricesZbvZp(schvaleneOnly: schvaleneOnly);
+      item.ZbvFakturovano = GetPricesZbvFaktury(schvaleneOnly);
+
+      return item;
+  }
+
+  GetPricesZbv() — approval filter on ZbvPol:
+
+  public CenyDTO GetPricesZbv(bool schvaleneOnly = false)
+  {
+      List<PriceTax> prices = GetPriceForEveryTax(x =>
+      {
+          IEnumerable<ZbvPol> zbvPols = x.ZbvPol;
+          if (schvaleneOnly)
+              zbvPols = zbvPols.Where(z => z.KZbvNavigation.Stav == false);  //stav 0/false == schvalene
+          return zbvPols.Sum(z => z.GetRoundedPrice(z.MnozstviZbv, AmountDecimalPlaces.Sod, AmountDecimalPlaces.Joc));
+      });
+      return PriceTax.ToCenyDTO(prices);
+  }
+
+  GetPricesZbvMereni() — approval filter on SSdPol.KZbvNavigation.Stav:
+
+  public CenyDTO GetPricesZbvMereni(bool schvaleneOnly = false)
+  {
+      List<PriceTax> prices = GetPriceForEveryTax(x => x.SSdPol
+          .Where(s => s.KZbv is not null && (!schvaleneOnly || s.KZbvNavigation.Stav == false))  //stav 0/false == schvalene
+          .Sum(z => z.GetRoundedPrice(z.Mnozstvi ?? 0, AmountDecimalPlaces.Zp, AmountDecimalPlaces.Joc)));
+      return PriceTax.ToCenyDTO(prices);
+  }
+
+  GetPricesZbvZp() — approval filter on PPol.KZpNavigation.KZbvNavigation.Stav:
+
+  public CenyDTO GetPricesZbvZp(bool schvaleneOnly = false)
+  {
+      List<PriceTax> prices = GetPriceForEveryTax(x => x.PPol
+          .Where(y => y.KZpNavigation.KZbv is not null && (!schvaleneOnly || y.KZpNavigation.KZbvNavigation.Stav == false))  //stav 0/false == schvalene
+          .Sum(z => z.GetRoundedPrice(z.Mnozstvi, AmountDecimalPlaces.Zp, AmountDecimalPlaces.Joc)));
+      return PriceTax.ToCenyDTO(prices);
+  }
+
+  The overload GetPricesZbvZp(DateTime datumOd, DateTime datumDo) is NOT changed — it is used only by GetPricesActualZp(datumOd, datumDo) which is not called from GetPrices().
+
+  GetPricesZbvFaktury() — approval filter on PPol.KZpNavigation.KZbvNavigation.Stav:
+
+  public CenyDTO GetPricesZbvFaktury(bool schvaleneOnly = false)
+  {
+      List<PriceTax> prices = GetPriceForEveryTax(y => y.PPol
+          .Where(x => x.KZpNavigation.KZbv is not null && x.KZpNavigation.FFakturyPol.Any() && (!schvaleneOnly || x.KZpNavigation.KZbvNavigation.Stav == false))  //stav 0/false ==
+  schvalene
+          .Sum(z => z.GetRoundedPrice(z.Mnozstvi, AmountDecimalPlaces.Zp, AmountDecimalPlaces.Joc)));
+      return PriceTax.ToCenyDTO(prices);
+  }
+
+  GetPricesActual(), GetPricesActualMereni(), GetPricesActualFaktury() — propagate:
+
+  public CenyDTO GetPricesActual(bool schvaleneOnly = false)
+  {
+      CenyDTO SoD = GetPricesSoD();
+      CenyDTO Zbv = GetPricesZbv(schvaleneOnly);
+      return SoD.SumCeny(Zbv);
+  }
+
+  public CenyDTO GetPricesActualMereni(bool schvaleneOnly = false)
+  {
+      CenyDTO SoD = GetPricesSoDMereni();
+      CenyDTO Zbv = GetPricesZbvMereni(schvaleneOnly);
+      return SoD.SumCeny(Zbv);
+  }
+
+  public CenyDTO GetPricesActualFaktury(bool schvaleneOnly = false)
+  {
+      CenyDTO SoD = GetPricesSoDFaktury();
+      CenyDTO Zbv = GetPricesZbvFaktury(schvaleneOnly);
+      return SoD.SumCeny(Zbv);
+  }
+
+  GetPricesActualZp() — propagate (add schvaleneOnly after existing optional params):
+
+  public CenyDTO GetPricesActualZp(DateTime? datumOd = null, DateTime? datumDo = null, bool schvaleneOnly = false)
+  {
+      if (!datumOd.HasValue)
+          datumOd = DateTime.UnixEpoch;
+      if (!datumDo.HasValue)
+          datumDo = DateTime.MaxValue;
+
+      CenyDTO SoD = GetPricesSoDZp(datumOd.Value, datumDo.Value);
+      CenyDTO Zbv = GetPricesZbvZp(datumOd.Value, datumDo.Value);
+      return SoD.SumCeny(Zbv);
+  }
+
+  Note: GetPricesActualZp() calls the datumOd/datumDo overload of GetPricesZbvZp() (not the schvaleneOnly overload). This is correct — the date-range variant is used for financial plan
+  calculations, not for the stavba info dashboard. The schvaleneOnly parameter on GetPricesActualZp() has no effect in the current implementation but is added for future consistency. If
+  you prefer to skip it and pass schvaleneOnly = false explicitly from GetPrices(), that is equally valid.
+
+  INTENTIONALLY UNCHANGED — GetPricesZbvZp(DateTime datumOd, DateTime datumDo) overload:
+  Used by VratRekapitulaciObjektuHandler (reports) which has no schvaleneOnly concept.
+
+  INTENTIONALLY UNCHANGED — all other callers of GetPrices(), GetPricesZbv(), GetPricesActual():
+  UspVratDataSoupisPraciProcedure.cs, VratRekapitulaciObjektuHandler.cs, GetZPStavbaReportHandler.cs, GetCenyStavebnihoDiluHandler.cs, GetCenyObjektuHandler.cs all call with no arguments →
+   schvaleneOnly = false default → zero behavior change.
+
+  ---
+  Step 7 — Handler and request model: add SchvaleneOnly
+
+  FILE: Test_Nove_API/TestApi/v1/Modules/ManagerStaveb/Handlers/GetCenyStavbyHandler.cs
+
+  METHOD: GetCenyStavbyRequest class — add property:
+
+  public class GetCenyStavbyRequest : IRequest<GetCenyStavbyResponse>, IRequestEntity
+  {
+      public int StavbaId { get; set; }
+      public bool SchvaleneOnly { get; set; }
+      public int GetEntityId() => StavbaId;
+      public TYP_UZLU GetEntityType() => TYP_UZLU.STAVBA;
+  }
+
+  METHOD: Handle() — pass to GetPrices():
+
+  return new GetCenyStavbyResponse { CenyStavby = stavbaCena.GetPrices(request.SchvaleneOnly) };
+
+  ---
+  Step 8 — Controller: expose schvaleneOnly as query param
+
+  FILE: Test_Nove_API/TestApi/v1/Modules/ManagerStaveb/ManagerStavebController.cs
+  CURRENT (line ~39):
+
+  [HttpGet]
+  [Route("stavby/{StavbaId}/ceny")]
+  public async Task<ActionResult<GetCenyStavbyResponse>> GetCenyStavby([FromRoute] GetCenyStavbyRequest request) => await ResolveResponse(request);
+
+  REPLACE WITH:
+
+  [HttpGet]
+  [Route("stavby/{StavbaId}/ceny")]
+  public async Task<ActionResult<GetCenyStavbyResponse>> GetCenyStavby([FromRoute] GetCenyStavbyRequest request, [FromQuery] bool schvaleneOnly = false)
+  {
+      request.SchvaleneOnly = schvaleneOnly;
+      return await ResolveResponse(request);
+  }
+
+  Web variant: This endpoint is already in ManagerStavebController (non-Desktop controller) — it serves both WPF (via NSwag ProconomApiClient) and the React web UI (via its NSwag
+  TypeScript client). No separate controller or route is needed. The optional ?schvaleneOnly=true query param is backward-compatible for both clients.
+
+  ---
+  PHASE 2 — NSwag regeneration (Karel does manually)
+
+  After all API changes compile, regenerate ProconomApiClient.cs. This will:
+  - Add SchvaleneOnly param to ManagerStaveb_GetCenyStavbyAsync()
+  - Add ZahrnoutPouzeSchvaleneZBV to UzivatelNastaveniDC
+
+  ---
+  PHASE 3 — WPF (after NSwag)
+
+  These steps will be implemented in a follow-up session. Listing them here as a reference:
+
+  ┌─────┬────────────────────────────────────┬──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │  #  │                File                │                                                                  Change                                                                  │
+  ├─────┼────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ 1   │ UzivatelNastaveniDTO.cs            │ Add ZahrnoutPouzeSchvaleneZBV bool property with Changed = true in setter                                                                │
+  ├─────┼────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ 2   │ Login.xaml.cs — Convert()          │ Map userRes.ZahrnoutPouzeSchvaleneZBV → HromadneZmeny-style                                                                              │
+  ├─────┼────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ 3   │ GlobalNastaveniWin.xaml            │ Add MaterialDesignSwitchToggleButton with two TextBlock labels using DataTrigger (pattern: tgbNevyporadane); labels "Všechny" / "Pouze   │
+  │     │                                    │ schválené"                                                                                                                               │
+  ├─────┼────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ 4   │ GlobalNastaveniWin.xaml.cs         │ Read and write ZahrnoutPouzeSchvaleneZBV in save/load block                                                                              │
+  ├─────┼────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ 5   │ IRozpocetServer +                  │ Add bool schvaleneOnly param to GetCeny()                                                                                                │
+  │     │ RozpocetServer.cs                  │                                                                                                                                          │
+  ├─────┼────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ 6   │ StavbaDTO.cs — GetCeny()           │ Pass App.UzivatelNastav.ZahrnoutPouzeSchvaleneZBV to GetCeny()                                                                           │
+  ├─────┼────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ 7   │ ucStavbaDetailMD.xaml.cs           │ On toggle change event → call RefreshCeny()                                                                                              │
+  └─────┴────────────────────────────────────┴──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+  ---
+  Ready to start applying? I'll go one file at a time using Edit, starting with Step 1 (CUzivateleNastaveni.cs) and waiting for your confirmation after each.
+
+
+
+
+
+
+
+
+
+
+
+
 ------------------------------------------------------------------------------------------------
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28936
