@@ -315,7 +315,307 @@ Revised Proposal — Schválené ZBV v informacích stavby
 
 
 
+!!!!!!!!!!!!!!!!!! TESTOVÁNÍ PRO WEBAŘE !!!!!!!!!!!!!!!!!!
+kontrola hodnoty zobrazitSchvaleneZbv
 
+
+GET
+https://localhost:44301/api/Users/VratNastaveniUzivatele
+
+{
+  "userSettings": {
+    "kod": 2,
+    "kodCenDB": null,
+    "nastaveniStavby": {
+      "kod": 0,
+      "kodStavba": 0,
+      "rozdeleneCerpani": false,
+      "desetinnaCisla": 3,
+      "desetinnaCislaJOC": 2,
+      "desetinnaCislaCerpani": 3,
+      "dpH1": 0,
+      "dpH2": 15,
+      "dpH3": 21,
+      "urovenHGM": 2,
+      "typZmeny": 0,
+      "zpNaPosledniUrovni": true,
+      "poradovaCisla": false,
+      "faze": 4,
+      "kodKV": null,
+      "sdruzeni": null,
+      "osobyPodpisyZBV": null,
+      "kalkulaceVzorec": null,
+      "potrebyDoSD": false,
+      "polozkyStruktura": 0,
+      "precerpanePolozky": false,
+      "precerpaneMereni": false,
+      "splatnostDni": null,
+      "kodDanObdobi": null,
+      "osobyZP": null,
+      "osobyMereni": null,
+      "valorizaceProcento": null,
+      "slevaProcento": null,
+      "zadrzneProcento": null,
+      "pozastavkaProcento": null,
+      "provedenoMerenim": null,
+      "kodCenDB": null,
+      "typ_Investor": 0,
+      "kV_changed": false,
+      "rozlisovatZpusobile": false,
+      "evidencniCislo": null,
+      "evidencniCisloZhotovitel": null,
+      "dotace": null,
+      "dotaceSUS": null,
+      "kodDotace": null,
+      "okres": null,
+      "datumHMG": null,
+      "typFidic": 0,
+      "rezervaProcent": null,
+      "zarukaOd": null,
+      "zarukaDo": null,
+      "zarukySeznam": null,
+      "podpisJmeno": null,
+      "podpisJmeno2": null,
+      "podpisFunkce": null,
+      "podpisFunkce2": null,
+      "kodKalendar": null,
+      "porCislaPol": false,
+      "raditDlePorCisla": false,
+      "dochazkaVzdalenost": null,
+      "automatickeZaznamyDochazka": false,
+      "convisionProjectId": null,
+      "adresaAPI": null,
+      "sDpoMesicich": false,
+      "mereniPoMesicich": false,
+      "mereniProcentem": false,
+      "typCommitu": 0,
+      "menaStavbyZarovnani": false,
+      "menaStavby": 0,
+      "fakturaIsprofin": null,
+      "kodTechnik": null,
+      "notifikacniDoba": null,
+      "hasZBV": false,
+      "vychoziPoznamka": null,
+      "convisionSynchronizaceCasu": false
+    },
+    "kodUziv": 5,
+    "tds": true,
+    "spravaPolozkaMereni": true,
+    "zbvPoObjektech": false,
+    "zobrazitSchvaleneZbv": false,
+    "email": "skrabal@proconom.cz",
+    "periodicEmailing": false,
+    "pocetDniEmailing": 1,
+    "timeUnit": 2,
+    "notifikaceApp": false,
+    "notifikaceMail": true,
+    "pocetWorkflow": 30,
+    "cestaMapOneDrive": "",
+    "telefon": null,
+    "syncOneDriveLocal": false,
+    "importDialogOkno": false,
+    "isDefault": false,
+    "vybranaHodina": null,
+    "faze": 0,
+    "stavbaNastaveniPravo": true,
+    "postaStav": false,
+    "kodFirmy": null,
+    "wfUdalostOutlook": false
+  },
+  "loginData": {
+    "id": 5,
+    "jmeno": "Administrátor",
+    "prijmeni": "Administrátor",
+    "funkce": null,
+    "token": null,
+    "role": null,
+    "db": null,
+    "dbName": null,
+    "userName": "Administrator",
+    "refreshToken": null,
+    "fcmTopic": "skrabalproconom.cz__684",
+    "twoFactorAuth": false,
+    "prava": [],
+    "tds": true,
+    "spravaPolozkaMereni": true,
+    "adminRights": true,
+    "subdodavatel": false,
+    "pridavaniDokumentu": true,
+    "mazaniDokumentu": true,
+    "pridavaniWF": true,
+    "reportingWF": true,
+    "spravaSablonWF": true,
+    "spravaRoliWF": true,
+    "spravaDeadlineWF": true,
+    "forgeVlastniVlastnosti": true,
+    "forgeSpravaFiltru": true,
+    "forgeSpravaFotoSouradnic": false,
+    "utvaryStavbyMazani": true,
+    "oneDriveVisible": true,
+    "aktivni": true,
+    "organizace": null,
+    "zobrazovaniVerzeDMS": null,
+    "viditelnostVsechTodo": true,
+    "titulyPred": null,
+    "titulyZa": null,
+    "posledniPrihlaseni": "2026-04-16T21:47:49.49",
+    "manageUsersConstructionRights": true,
+    "manageExternalTenders": true,
+    "jazyk": "cs-CZ"
+  },
+  "notifications": {
+    "wfCommon": true,
+    "wfInformed": true,
+    "wfAfterRemark": true
+  }
+}
+
+
+
+POST
+https://localhost:44301/api/Users/UserSettings
+
+
+
+
+{
+    "nastaveni": {
+      "kod": 2,
+      "kodCenDB": null,
+      "nastaveniStavby": {
+        "kod": 0,
+        "kodStavba": 0,
+        "rozdeleneCerpani": false,
+        "desetinnaCisla": 3,
+        "desetinnaCislaJOC": 2,
+        "desetinnaCislaCerpani": 3,
+        "dpH1": 0,
+        "dpH2": 15,
+        "dpH3": 21,
+        "urovenHGM": 2,
+        "typZmeny": 0,
+        "zpNaPosledniUrovni": true,
+        "poradovaCisla": false,
+        "faze": 4,
+        "potrebyDoSD": false,
+        "polozkyStruktura": 0,
+        "precerpanePolozky": false,
+        "precerpaneMereni": false,
+        "rozlisovatZpusobile": false,
+        "typFidic": 0,
+        "porCislaPol": false,
+        "raditDlePorCisla": false,
+        "automatickeZaznamyDochazka": false,
+        "sDpoMesicich": false,
+        "mereniPoMesicich": false,
+        "mereniProcentem": false,
+        "typCommitu": 0,
+        "menaStavbyZarovnani": false,
+        "menaStavby": 0,
+        "hasZBV": false,
+        "convisionSynchronizaceCasu": false,
+        "kV_changed": false,
+        "typ_Investor": 0
+      },
+      "kodUziv": 5,
+      "tds": true,
+      "spravaPolozkaMereni": true,
+      "zbvPoObjektech": false,
+      "zobrazitSchvaleneZbv": false,
+      "email": "skrabal@proconom.cz",
+      "periodicEmailing": false,
+      "pocetDniEmailing": 1,
+      "timeUnit": 2,
+      "notifikaceApp": false,
+      "notifikaceMail": true,
+      "pocetWorkflow": 30,
+      "cestaMapOneDrive": "",
+      "syncOneDriveLocal": false,
+      "importDialogOkno": false,
+      "isDefault": false,
+      "faze": 0,
+      "postaStav": false,
+      "wfUdalostOutlook": false
+    },
+    "notifications": {
+      "wfCommon": true,
+      "wfInformed": true,
+      "wfAfterRemark": true
+    }
+  }
+  
+  GET
+ https://localhost:44301/api/ManagerStaveb/stavby/1/ceny?schvaleneOnly=false 
+ 
+ musím mít nějaké ZBV neschválené... musí vracet nižší hodnoty
+ schvaleneOnly=false / true
+ 
+ {
+  "cenyStavby": {
+    "aktualni": {
+      "celkem": 6638.4,
+      "zaklad": 5486.28,
+      "dph": 1152.12
+    },
+    "aktualniNamereno": {
+      "celkem": 664.11,
+      "zaklad": 548.85,
+      "dph": 115.26
+    },
+    "aktualniCerpano": {
+      "celkem": 0,
+      "zaklad": 0,
+      "dph": 0
+    },
+    "aktualniFakturovano": {
+      "celkem": 0,
+      "zaklad": 0,
+      "dph": 0
+    },
+    "sod": {
+      "celkem": 6638.4,
+      "zaklad": 5486.28,
+      "dph": 1152.12
+    },
+    "sodNamereno": {
+      "celkem": 664.11,
+      "zaklad": 548.85,
+      "dph": 115.26
+    },
+    "sodCerpano": {
+      "celkem": 0,
+      "zaklad": 0,
+      "dph": 0
+    },
+    "sodFakturovano": {
+      "celkem": 0,
+      "zaklad": 0,
+      "dph": 0
+    },
+    "zbv": {
+      "celkem": 0,
+      "zaklad": 0,
+      "dph": 0
+    },
+    "zbvNamereno": {
+      "celkem": 0,
+      "zaklad": 0,
+      "dph": 0
+    },
+    "zbvCerpano": {
+      "celkem": 0,
+      "zaklad": 0,
+      "dph": 0
+    },
+    "zbvFakturovano": {
+      "celkem": 0,
+      "zaklad": 0,
+      "dph": 0
+    }
+  },
+  "datum": "2026-04-16T22:23:23.5990737+02:00",
+  "infoMessage": ""
+}
 
 
 
