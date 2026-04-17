@@ -1,3 +1,102 @@
+---------------------------
+GIT-workflow when switching among branches
+---------------------------
+
+WIP Commit Workflow — Full Detail
+
+  1. Creating a WIP commit
+
+  You have uncommitted changes in branch1 and need to switch away.
+
+  In Visual Studio — Git Changes panel:
+  1. Stage all files (click + next to each file, or + next to "Changes" to stage all)
+  2. Type a message: WIP: implementing X
+  3. Click Commit Staged
+
+  Now branch1 has a WIP commit. You can freely switch to branch2.
+
+  ---
+  2. Coming back and continuing work
+
+  Switch back to branch1. Your WIP commit is there. Just edit files normally. Now you have:
+  - The WIP commit (already committed)
+  - New uncommitted changes on top of it
+
+  ---
+  3. Adding more changes into the WIP commit (Amend)
+
+  When you want to fold new changes INTO the existing WIP commit (not create a second commit):
+
+  In Visual Studio:
+  1. Stage the new changes
+  2. Check the Amend checkbox (below the commit message box)
+  3. Keep the same message or update it
+  4. Click Commit Staged
+
+  The previous WIP commit is replaced with a new one that includes everything. From Git's point of view, the old commit never existed — it is rewritten locally.
+
+  ⚠ Only amend commits that have NOT been pushed to remote yet. Amending a pushed commit rewrites history and causes problems for anyone else on the branch.
+
+  ---
+  4. Reverting changes before final push
+
+  You have options depending on what you want to undo:
+
+  A — Discard specific uncommitted file changes (not yet staged/committed)
+  - Git Changes panel → right-click file → Discard Changes
+  - File goes back to the state of the last commit
+
+  B — Unstage a file (staged but not committed yet)
+  - Git Changes panel → click − next to the staged file
+  - File moves back to unstaged, changes preserved
+
+  C — Undo the entire WIP commit but keep the changes as uncommitted
+  - Git menu → View Branch History
+  - Right-click the WIP commit → Reset → Mixed (Keep Changes)
+  - The commit disappears, all changes come back as unstaged edits
+  - You can now selectively stage and recommit only what you want
+
+  D — Undo the entire WIP commit AND discard all changes (nuclear)
+  - Git menu → View Branch History
+  - Right-click the WIP commit → Reset → Hard (Delete Changes)
+  - ⚠ This permanently deletes all changes in that commit — no undo
+
+  ---
+  5. Preparing the final "real" commit before push
+
+  When you're done with the feature:
+
+  1. If you still have WIP commits: use Reset → Mixed (option C above) to uncommit everything
+  2. Review all changes carefully
+  3. Stage only what belongs together (you can stage file-by-file or even hunk-by-hunk in VS via the diff view)
+  4. Write a proper commit message
+  5. Commit → then Push
+
+  Or alternatively: just Amend the WIP commit with the final message — skips the reset step entirely.
+
+  ---
+  Summary table
+
+  ┌─────────────────────────────────────┬──────────────────────────────────────────┐
+  │                Goal                 │                VS Action                 │
+  ├─────────────────────────────────────┼──────────────────────────────────────────┤
+  │ Park changes in branch              │ Commit Staged with "WIP:" message        │
+  ├─────────────────────────────────────┼──────────────────────────────────────────┤
+  │ Add more changes to existing commit │ Stage → check Amend → Commit Staged      │
+  ├─────────────────────────────────────┼──────────────────────────────────────────┤
+  │ Discard uncommitted file            │ Right-click → Discard Changes            │
+  ├─────────────────────────────────────┼──────────────────────────────────────────┤
+  │ Undo commit, keep changes           │ Reset → Mixed                            │
+  ├─────────────────────────────────────┼──────────────────────────────────────────┤
+  │ Undo commit + delete changes        │ Reset → Hard ⚠                           │
+  ├─────────────────────────────────────┼──────────────────────────────────────────┤
+  │ Final clean commit                  │ Reset Mixed → restage carefully → Commit │
+  └─────────────────────────────────────┴──────────────────────────────────────────┘
+
+  ---
+
+
+
 
 
 -------------------------
