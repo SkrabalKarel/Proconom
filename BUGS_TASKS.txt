@@ -1487,6 +1487,14 @@ Stashing uncommitted changes before performing a checkout of 'develop'. Pop or a
 další stash z 3.3.2026
 On develop_28083_ksk_WFdetail: Checking out develop
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!! POZOR !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+tyto commits byly udělány v prerelease_28083_ksk_WFdetail -> stash s NEMAZAT!!! bude se implementovat do developu!!!
+39fc1628aceaf2e5a3d572f2db85a9ed0acb3cb6
+67e3a28b09d785e74b8cc2280d83f1ddaa528a93
+gray je jiná než na webu
+
+(je vytvořený nový https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29191/  )
+
 
 ------------------------------------------------------------------------------------------
 
