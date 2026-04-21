@@ -1,4 +1,136 @@
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29207/
 
+Goal
+
+  Add checkbox "Nezahrnovat položky začínající na 0" to the Proměřené položky za období print widget. When checked, items (RPol) whose Znacka starts with
+  "0" are excluded from the Excel report. The checkbox is mutually exclusive with the existing "Nezahrnovat Stavební díl se značkou 0" checkbox.
+
+  ---
+  Repo: Test_Nove_API
+
+  1. TiskReportApi/Modules/Reports/Handlers/GetMereniPolozekZaObdobiExcelHandler.cs
+
+  What changed: New property added to the MediatR request class.
+
+  // BEFORE:
+  public bool VyfiltrovatSDsNulouVeZnacce { get; set; } = false;
+
+  // AFTER:
+  public bool VyfiltrovatSDsNulouVeZnacce { get; set; } = false;
+  public bool VyfiltrovatPolozkyZacinajiciNulou { get; set; } = false;  // NEW
+
+  This property travels from the API endpoint → MediatR handler → report builder.
+
+  ---
+  2. TiskReportApi/Helpers/ReportMereniPolozekZaObdobiExcel.cs
+
+  What changed: EF Core filtered .ThenInclude on RPol added in both include chains inside GetData().
+
+  // Chain 1 (SSdPol path):
+  .ThenInclude(x => x.RSd.Where(z => !(req.VyfiltrovatSDsNulouVeZnacce && z.Znacka.Equals("0"))))
+      .ThenInclude(x => x.RPol.Where(p => !(req.VyfiltrovatPolozkyZacinajiciNulou && p.Znacka.StartsWith("0"))))  // NEW
+          .ThenInclude(x => x.SSdPol.Where(y => y.DatumMereni >= _od && y.DatumMereni <= _do))
+
+  // Chain 2 (KMjNavigation path):
+  .ThenInclude(x => x.RSd.Where(z => !(req.VyfiltrovatSDsNulouVeZnacce && z.Znacka.Equals("0"))))
+      .ThenInclude(x => x.RPol.Where(p => !(req.VyfiltrovatPolozkyZacinajiciNulou && p.Znacka.StartsWith("0"))))  // NEW
+          .ThenInclude(x => x.KMjNavigation)
+
+  Both chains had to be updated — EF Core loads each chain independently and merges results into the entity graph. Filtering only one would let the
+  unfiltered chain repopulate the RPol collection.
+
+  No database changes. The filter is purely in-memory at the EF query level.
+
+  ---
+  Repo: Proconom (WPF)
+
+  3. eConoM/Servers/ReportServer/IReportServer.cs
+
+  What changed: New filtrovatPolNula parameter added to the interface method.
+
+  // BEFORE:
+  Task<FileResponse> GetPromerenostZaObdobi(..., bool filtrovatSDsNulou, CancellationToken cancellationToken);
+
+  // AFTER:
+  Task<FileResponse> GetPromerenostZaObdobi(..., bool filtrovatSDsNulou, bool filtrovatPolNula, CancellationToken cancellationToken);
+
+  ---
+  4. eConoM/Servers/ReportServer/ReportServer.cs
+
+  What changed: Implementation signature updated to match the interface. The parameter is accepted but not yet forwarded to the NSwag client call — pending
+  NSwag regeneration.
+
+  public async Task<FileResponse> GetPromerenostZaObdobi(
+      int stavbaId, List<int> objektyIds, DateTime? _od, DateTime? _do,
+      bool filtrovatSDsNulou, bool filtrovatPolNula,   // NEW param
+      CancellationToken cancellationToken)
+  {
+      // filtrovatPolNula intentionally not forwarded yet — NSwag not regenerated with new API param
+      return await Execute(() => ProconomStaticClient.AuthorizedTiskClient
+          .Reports_GetMereniPolozekZaObdobiExcelDataAsync(stavbaId, objektyIds, _od, _do, filtrovatSDsNulou), cancellationToken);
+  }
+
+  ---
+  5. eConoM/Widgety/Mereni/WidgetTiskMereni.xaml
+
+  What changed: New row and new checkbox added to the Promerenost grid.
+
+  - Added RowDefinition Height="60" (Row 3)
+  - Added Checked="cbNezahrnovatSDNula_Checked" event to the existing cbNezahrnovatSDNula
+  - Added new cbNezahrnovatPolNula checkbox at Row 3:
+
+  <CheckBox x:Name="cbNezahrnovatPolNula"
+            Grid.Row="3" Grid.ColumnSpan="2" Margin="12"
+            Content="{x:Static p:Resources.strNezahrnovatPolozkyZacinajiciNa0}"
+            IsChecked="False"
+            Style="{StaticResource MaterialDesignCheckBox}"
+            Checked="cbNezahrnovatPolNula_Checked" />
+
+  ---
+  6. eConoM/Widgety/Mereni/WidgetTiskMereni.xaml.cs
+
+  What changed: Two additions.
+
+  Print call — passes the new checkbox value:
+  FileResponse res = await ReportServer.GetPromerenostZaObdobi(
+      KodStavba, objekty,
+      dtpOD_promerenost.SelectedDate, dtpDo_promerenost.SelectedDate,
+      cbNezahrnovatSDNula.IsChecked.Value,
+      cbNezahrnovatPolNula.IsChecked.Value,   // NEW
+      cancellationToken.Token);
+
+  Mutual exclusion handlers — checking one unchecks the other:
+  private void cbNezahrnovatSDNula_Checked(object sender, RoutedEventArgs e)
+  {
+      cbNezahrnovatPolNula.IsChecked = false;
+  }
+
+  private void cbNezahrnovatPolNula_Checked(object sender, RoutedEventArgs e)
+  {
+      cbNezahrnovatSDNula.IsChecked = false;
+  }
+
+  ---
+  7. eConoM/Moduly/Admin/UserProfileSettings/UserProfileSettingsServer.cs + NewUserVM.cs
+
+  What changed: Unrelated build fix caused by NSwag regeneration changing the return type of Auth_AddUserToDatabaseAsync from EmptyActionResponse to
+  AddUserToDatabaseResponse. Updated the interface, implementation, and caller variable type accordingly. No logic change — the caller only checks if (res
+  != null).
+
+  ---
+  Pending (1 item)
+
+  Once the API is rebuilt and running, regenerate NSwag again. Then update ReportServer.cs:314 to actually forward filtrovatPolNula:
+
+  return await Execute(() => ProconomStaticClient.AuthorizedTiskClient
+      .Reports_GetMereniPolozekZaObdobiExcelDataAsync(
+          stavbaId, objektyIds, _od, _do, filtrovatSDsNulou, filtrovatPolNula),
+      cancellationToken);
+
+  ---
+
+
+------------------------------------------------------------------------------------------------------
 
 
 
