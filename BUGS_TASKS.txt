@@ -897,6 +897,301 @@ widget-tisk-stavba-web-variants.md (13:52) — Updated the WidgetTiskStavba web 
   develop_28936_ksk_endpointyMereniWeb, commits 58aaeeb4a6aa99906b64bf6dd162b637db3d6ddb  , 7687949ab5523340e20363119b2a0609046af6d6 ,
   1c65f8aee0d09aece9b6cd3c21a74aec7a7ad74e , a919afc4e8cfa73099a824e4c21fdaf5944edf27 would be usefull to use this functionality created by this commits?
 
+--- xxxxxxxxxxxxxxxxx
+  What was changed yesterday
+
+  Branch: develop_29036_ksk_PrintingBudget — uncommitted changes in 2 files.
+
+  ---
+  New endpoint added
+
+  GET api/Reports/stavba/soupisZbv/data/web
+
+  This is the /web variant of the existing stavba/soupisZbv/data endpoint.
+
+  What it does differently:
+  - Takes an extra Format query param (Pdf, Word, Excel, Dms, Prnx)
+  - Iterates all ZBV on the given stavba, generates a report for each, merges all pages into one XtraReport, then exports via IOutputFormatter in the
+  requested format
+  - Returns the file directly (not a prnx blob for WPF)
+
+  ---
+  How to test it in Swagger / HTTP client
+
+  Base URL: https://localhost:44301/api/Reports/stavba/soupisZbv/data/web
+
+  Method: GET
+
+  Query parameters:
+
+  ┌──────────────────┬────────────────┬─────────────────────────────────────────────────────────────────┐
+  │      Param       │      Type      │                              Notes                              │
+  ├──────────────────┼────────────────┼─────────────────────────────────────────────────────────────────┤
+  │ StavbaId         │ int            │ ID of a stavba that has at least one ZBV                        │
+  ├──────────────────┼────────────────┼─────────────────────────────────────────────────────────────────┤
+  │ SPoznamkou       │ bool           │ true / false                                                    │
+  ├──────────────────┼────────────────┼─────────────────────────────────────────────────────────────────┤
+  │ Format           │ enum           │ 0=Prnx, 1=Pdf, 2=Word, 3=Excel, 4=Dms                           │
+  ├──────────────────┼────────────────┼─────────────────────────────────────────────────────────────────┤
+  │ NastaveniTisku.* │ complex object │ all fields from TiskZbvNastaveniDTO sent as nested query params │
+  └──────────────────┴────────────────┴─────────────────────────────────────────────────────────────────┘
+
+  Minimal test call (PDF):
+  GET /api/Reports/stavba/soupisZbv/data/web
+      ?StavbaId=12345
+      &SPoznamkou=false
+      &Format=1
+      &NastaveniTisku.SCenami=true
+      &NastaveniTisku.Verze=1
+      &NastaveniTisku.Included=1
+      &NastaveniTisku.DestMista=2
+
+  What to verify:
+  1. Response is 200 with Content-Type: application/pdf (or Word/Excel depending on Format)
+  2. File downloads and opens correctly
+  3. Test with a StavbaId that has no ZBV → expect 400 Bad Request with the localized message msgNaTetoStavbeNebylyNalezenyZadneZBV
+  4. Multiple ZBV on same stavba → all pages merged into one file
+
+  ---
+  Quick negative test
+
+  GET /api/Reports/stavba/soupisZbv/data/web?StavbaId=99999&SPoznamkou=false&Format=1
+      &NastaveniTisku.Verze=1&NastaveniTisku.Included=1
+  Should return 400 — no ZBV found for that stavba.
+
+  ---xxxxxxxxxxxxxxxxxxx
+
+ ---
+  What was changed
+
+  Only 2 files changed, both in TiskReportApi. The changes add a /web variant of an existing print endpoint.
+
+  ---
+  The existing desktop endpoint
+
+  GET api/Reports/stavba/soupisZbv/data
+
+  What it does:
+  1. Finds all ZBV for the given StavbaId
+  2. For each ZBV, generates a SoupisPraci report
+  3. Merges all pages into one XtraReport
+  4. Serializes it to a raw .prnx binary stream (DevExpress format)
+  5. Returns application/octet-stream — a raw binary blob that only the WPF DevExpress viewer can open
+
+  Who calls it from WPF:
+  WidgetTiskStavba.xaml.cs:990
+    → ucDXReportMain (DevExpress viewer)
+      → SoupisPraciZbvStavbaPrint.VratData()
+        → ReportServer.GetSoupisPraciZbvStavbaReport()
+          → TiskApiClient.Reports_GetSoupisPraciZbvByStavbaAsync()   ← NSwag generated
+
+  ---
+  The new /web endpoint
+
+  GET api/Reports/stavba/soupisZbv/data/web
+
+  What is different:
+  - Inherits all the same parameters (StavbaId, NastaveniTisku, SPoznamkou)
+  - Adds one extra parameter: Format (enum: Pdf=1, Word=2, Excel=3, Dms=4, Prnx=0)
+  - Instead of saving a .prnx stream, it resolves an IOutputFormatter keyed by Format and exports to the requested file type
+  - Uses using XtraReport (properly disposes) — the old handler does not dispose it
+  - Returns a real downloadable file (PDF, DOCX, XLSX) instead of a raw DevExpress blob
+
+  Side-by-side:
+
+  ┌─────────────────┬───────────────┬────────────────────────┐
+  │                 │  Old (/data)  │    New (/data/web)     │
+  ├─────────────────┼───────────────┼────────────────────────┤
+  │ Extra param     │ —             │ Format enum            │
+  ├─────────────────┼───────────────┼────────────────────────┤
+  │ Output type     │ .prnx binary  │ PDF / Word / Excel     │
+  ├─────────────────┼───────────────┼────────────────────────┤
+  │ Dispose         │ ❌ no using   │ ✅ using XtraReport    │
+  ├─────────────────┼───────────────┼────────────────────────┤
+  │ Target consumer │ WPF DX viewer │ Web browser / React UI │
+  └─────────────────┴───────────────┴────────────────────────┘
+
+  ---
+  How to call it from WPF UI
+
+  Short answer: you don't — and you shouldn't.
+
+  The /web endpoint is designed for the React web UI (Proconom_Web_App_TS). The WPF already has the original /data endpoint and uses it via the DevExpress
+  print preview chain shown above.
+
+  However, if you ever wanted to call it from WPF (e.g. to export a PDF directly without opening the DX viewer), the pattern would be:
+
+  Step 1 — Regenerate NSwag client after committing the endpoint. NSwag will generate Reports_GetSoupisPraciZbvByStavbaWebAsync(...) in
+  TiskApi/TiskApiClient.cs (same pattern as the existing Reports_GetKomplexniSoupisPraciDataWebAsync already in that file).
+
+  Step 2 — Add a method to IReportServer / ReportServer.cs:
+  // IReportServer.cs
+  Task<FileResponse> GetSoupisPraciZbvStavbaReportWeb(
+      int stavbaId, NastaveniTiskZBVDC nastaveni, bool sPoznamkou,
+      OUTPUT_FORMAT2 format, CancellationToken cancellationToken);
+
+  // ReportServer.cs
+  public async Task<FileResponse> GetSoupisPraciZbvStavbaReportWeb(
+      int stavbaId, NastaveniTiskZBVDC nastaveni, bool sPoznamkou,
+      OUTPUT_FORMAT2 format, CancellationToken cancellationToken)
+  {
+      return await Execute(() =>
+          ProconomStaticClient.AuthorizedTiskClient
+              .Reports_GetSoupisPraciZbvByStavbaWebAsync(
+                  stavbaId,
+                  /* NastaveniTisku fields flattened one by one... */
+                  nastaveni.Smernice, nastaveni.Uroven, ...,
+                  sPoznamkou,
+                  format,
+                  cancellationToken),
+          cancellationToken);
+  }
+
+  Step 3 — Use the returned FileResponse.Stream directly — save it to disk or open it via Process.Start, same as how DMS downloads work elsewhere in the
+  app.
+
+  ---
+  But again — this endpoint is not meant for WPF. The web endpoint exists so the React UI can request a PDF/Word/Excel download directly from the browser
+  without any DevExpress dependency.
+
+  ---xxxxxxxxxxxxxxx
+
+ ---
+  All reused components — where they come from and what they do
+
+  ---
+  1. OUTPUT_FORMAT enum
+
+  File: TiskReportApi/Enums/Enums.cs:127
+
+  public enum OUTPUT_FORMAT
+  {
+      Prnx,   // 0 — DevExpress binary, WPF viewer only
+      Pdf,    // 1 — PDF file
+      Word,   // 2 — DOCX (not implemented yet)
+      Excel,  // 3 — XLSX (not implemented yet)
+      Dms     // 4 — save directly to DMS (not implemented yet)
+  }
+
+  This is the "what format do you want the file in?" selector passed by the caller. It's also used as the DI key when resolving the formatter — so Pdf →
+  PdfFormatter, Prnx → PrnxFormatter, etc.
+
+  ---
+  2. IOutputFormatter interface
+
+  File: TiskReportApi/Helpers/IOutputFormatter.cs
+
+  public interface IOutputFormatter
+  {
+      Task<FileResponsePCM> ExportAsync(XtraReport report, string baseFileName);
+  }
+
+  Simple contract: takes a fully-built XtraReport + a base filename, returns a FileResponsePCM with the right stream and content-type. The caller doesn't
+  care about the format — it just calls ExportAsync.
+
+  ---
+  3. Concrete formatters
+
+  ┌────────────────┬──────────────────────────┬───────────────────────────────────────────────┐
+  │     Class      │           File           │                 What it does                  │
+  ├────────────────┼──────────────────────────┼───────────────────────────────────────────────┤
+  │ PdfFormatter   │ Helpers/PdfFormatter.cs  │ Calls report.ExportToPdf(ms) → returns .pdf   │
+  ├────────────────┼──────────────────────────┼───────────────────────────────────────────────┤
+  │ PrnxFormatter  │ Helpers/PrnxFormatter.cs │ Calls report.SaveDocument(ms) → returns .prnx │
+  ├────────────────┼──────────────────────────┼───────────────────────────────────────────────┤
+  │ WordFormatter  │ ❌ not yet created       │ commented out in Program.cs                   │
+  ├────────────────┼──────────────────────────┼───────────────────────────────────────────────┤
+  │ ExcelFormatter │ ❌ not yet created       │ commented out in Program.cs                   │
+  ├────────────────┼──────────────────────────┼───────────────────────────────────────────────┤
+  │ DmsFormatter   │ ❌ not yet created       │ commented out in Program.cs                   │
+  └────────────────┴──────────────────────────┴───────────────────────────────────────────────┘
+
+  Both existing formatters return ContentType = "application/octet-stream" — the browser triggers a file download either way. The difference is only the
+  file extension and DevExpress export method used.
+
+  ---
+  4. DI registration — keyed services
+
+  File: TiskReportApi/Program.cs:188
+
+  builder.Services.AddKeyedSingleton<IOutputFormatter, PdfFormatter>(OUTPUT_FORMAT.Pdf);
+  builder.Services.AddKeyedSingleton<IOutputFormatter, PrnxFormatter>(OUTPUT_FORMAT.Prnx);
+  // Word, Excel, Dms — commented out, not yet implemented
+
+  This uses .NET 8 keyed DI (AddKeyedSingleton). The key is the OUTPUT_FORMAT enum value. This is why the handler needs IKeyedServiceProvider (not plain
+  IServiceProvider) to resolve by key:
+
+  IOutputFormatter formatter = _serviceProvider
+      .GetRequiredKeyedService<IOutputFormatter>(request.Format);
+
+  Think of it like a dictionary: OUTPUT_FORMAT.Pdf → PdfFormatter. No switch statement needed.
+
+  ---
+  5. FileResponsePCM
+
+  File: Commons/Response.cs:18
+
+  public class FileResponsePCM
+  {
+      public Stream FileStream { get; set; }
+      public string ContentType { get; set; }
+      public string FileDownloadName { get; set; }
+      public bool Inline { get; set; }   // true = open in browser, false = download
+  }
+
+  The shared return type used by all file-returning handlers in TiskReportApi. GeneralController.ResolveResponse checks if the MediatR result is
+  FileResponsePCM and if so, builds the HTTP Content-Disposition header and returns a FileStreamResult.
+
+  ---
+  6. IKeyedServiceProvider vs IServiceProvider
+
+  The first two /web handlers (GetDataProVymeruProvedenychPraciHandlerWeb, GetHromadnyZaznamMereniDataHandlerWeb) injected plain IServiceProvider. Your new
+  handler uses IKeyedServiceProvider — this is the correct, explicit type. Both work because IServiceProvider in .NET 8 is backed by the same container that
+   supports keyed lookups, but IKeyedServiceProvider makes the intent clearer.
+
+  ---
+  How the full pipeline fits together
+
+  HTTP GET /stavba/soupisZbv/data/web?StavbaId=X&Format=1
+          │
+          ▼
+  ReportsController.GetSoupisPraciZbvByStavbaWeb()
+          │  [FromQuery] binds to GetSoupisPraciZbvByStavbaDataRequestWeb
+          │
+          ▼
+  GeneralController.ResolveResponse()  ← calls _mediator.Send(request)
+          │
+          ▼
+  GetSoupisPraciZbvByStavbaDataHandlerWeb.Handle()
+          │
+          ├── DB query: find all ZBV for StavbaId
+          ├── foreach ZBV → _mediator.Send(GetSoupisPraciReportRequest)
+          │      └── returns GetSoupisPraciReportResponse (data)
+          ├── _reportService.GetReport(TYP_SESTAVA.SOUPIS_PRACI, data)
+          │      └── returns XtraReport (built, not yet rendered)
+          ├── report.ModifyDocument(x => x.AddPages(...))
+          │      └── merges pages from each ZBV into one XtraReport
+          │
+          ├── IKeyedServiceProvider.GetRequiredKeyedService<IOutputFormatter>(Format)
+          │      └── Format=1 (Pdf) → resolves PdfFormatter
+          │
+          └── formatter.ExportAsync(report, "SoupisPraciStavbyZbv")
+                 └── PdfFormatter: report.ExportToPdf(ms) → FileResponsePCM
+                          │
+                          ▼
+                GeneralController: sets Content-Disposition header
+                          │
+                          ▼
+                HTTP 200  application/octet-stream  SoupisPraciStavbyZbv.pdf
+
+  ---
+  What's NOT yet implemented
+
+  Word, Excel, Dms formatters are stubbed in the enum and commented out in Program.cs. If you call Format=2 (Word) right now, GetRequiredKeyedService will
+  throw — no registration exists for that key.
+
+  ---
+
 --------------------------------------------------------------------------------------
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29038/
