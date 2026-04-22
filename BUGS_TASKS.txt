@@ -1324,6 +1324,21 @@ widget-tisk-stavba-web-variants.md (13:52) — Updated the WidgetTiskStavba web 
 
   ---
 
+Integrační testy implementace !!!!!
+
+● ┌─────────────────────────────────────────────────┬──────────────────────────────────────────────────────┐
+  │                   WPF Button                    │               Integration Test File                  │
+  ├─────────────────────────────────────────────────┼──────────────────────────────────────────────────────┤
+  │ Soupis prací (btnPrint_Click)                   │ Tests/Rozpocet/GetSoupisPraciDataTest.cs ✅           │
+  ├─────────────────────────────────────────────────┼──────────────────────────────────────────────────────┤
+  │ Rekapitulace objektů (btnRekapObjektu_Click)    │ ❌ not implemented                                   │
+  ├─────────────────────────────────────────────────┼──────────────────────────────────────────────────────┤
+  │ Závěrečná zpráva (btnZaverecneVyporadani_Click) │ ❌ not implemented                                   │
+  ├─────────────────────────────────────────────────┼──────────────────────────────────────────────────────┤
+  │ Soupis prací se ZBV (btnSoupisPraciSZBV_Click)  │ Tests/Rozpocet/GetSoupisPraciZbvDataTest.cs ✅       │
+  └─────────────────────────────────────────────────┴──────────────────────────────────────────────────────┘
+  2 out of 4 covered. Rekapitulace objektů and Závěrečná zpráva have no tests yet.
+
 --------------------------------------------------------------------------------------
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29038/
