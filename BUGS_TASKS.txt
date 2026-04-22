@@ -752,6 +752,10 @@ https://localhost:44301/api/Users/UserSettings
 
 
 
+!!!!!!!!!!!! INSTRUKTÁŽNÍ VIDEO !!!!!!!!!!
+"C:\Users\karel.skrabal\Videos\Záznamy obrazovky\Záznam obrazovky 2026-04-22 124141.mp4"
+
+
 
 
 
