@@ -754,6 +754,202 @@ https://localhost:44301/api/Users/UserSettings
 
 !!!!!!!!!!!! INSTRUKTÁŽNÍ VIDEO !!!!!!!!!!
 "C:\Users\karel.skrabal\Videos\Záznamy obrazovky\Záznam obrazovky 2026-04-22 124141.mp4"
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+-----------------------------
+puvodní kód + varianty změn
+-----------------------------
+     protected override async Task GetData()
+     {
+         //A solution
+         SStavby stav = await _ctx.SStavby
+             .AsNoTracking()
+             .AsSplitQuery()
+             .Where(s => s.XId == req.StavbaId)
+
+             .Include(s => s.SStavbyNastaveni)
+
+             // -------- First include path --------
+             .Include(s => s.RObjekty)
+                 .ThenInclude(o => o.RSd.Where(sd =>
+                     // INLINE filtering logic ✅
+                     (!req.VyfiltrovatPolozkyZacinajiciNulou || !sd.Znacka.StartsWith("0")) &&
+                     (!req.VyfiltrovatSDsNulouVeZnacce || sd.Znacka != "0")
+                 ))
+                     .ThenInclude(sd => sd.RPol)
+                         .ThenInclude(p => p.KMjNavigation)
+
+             // -------- Second include path --------
+             .Include(s => s.RObjekty)
+                 .ThenInclude(o => o.RSd.Where(sd =>
+                     // SAME INLINE filtering logic ✅
+                     (!req.VyfiltrovatPolozkyZacinajiciNulou || !sd.Znacka.StartsWith("0")) &&
+                     (!req.VyfiltrovatSDsNulouVeZnacce || sd.Znacka != "0")
+                 ))
+                     .ThenInclude(sd => sd.RPol)
+                         .ThenInclude(p => p.SSdPol
+                             .Where(m =>
+                                 m.DatumMereni >= _od &&
+                                 m.DatumMereni <= _do))
+                             .ThenInclude(sp => sp.KZbvNavigation)
+                                 .ThenInclude(z => z.ZbvPol)
+
+             .FirstOrDefaultAsync();
+
+         if (stav == null)
+             throw new BadDataException("Stavba nenalezena");
+
+         data = new ReportMereniPolozekZaObdobiExcelData
+         {
+             Stavba = stav
+         };
+     }
+
+
+     //protected override async Task GetData()
+     //{
+     //    //B
+     //    // 1️⃣ Load the full graph WITHOUT filtered Include
+     //    var stav = await _ctx.SStavby
+     //        .AsNoTracking()
+     //        .AsSplitQuery()
+     //        .Where(s => s.XId == req.StavbaId)
+
+     //        .Include(s => s.SStavbyNastaveni)
+
+     //        .Include(s => s.RObjekty)
+     //            .ThenInclude(o => o.RSd)
+     //                .ThenInclude(sd => sd.RPol)
+     //                    .ThenInclude(p => p.KMjNavigation)
+
+     //        .Include(s => s.RObjekty)
+     //            .ThenInclude(o => o.RSd)
+     //                .ThenInclude(sd => sd.RPol)
+     //                    .ThenInclude(p => p.SSdPol
+     //                        .Where(m =>
+     //                            m.DatumMereni >= _od &&
+     //                            m.DatumMereni <= _do))
+     //                        .ThenInclude(sp => sp.KZbvNavigation)
+     //                            .ThenInclude(z => z.ZbvPol)
+
+     //        .FirstOrDefaultAsync();
+
+     //    if (stav == null)
+     //        throw new BadDataException("Stavba nenalezena");
+
+     //    // 2️⃣ Apply SD filtering IN MEMORY (business logic)
+     //    foreach (var objekt in stav.RObjekty)
+     //    {
+     //        objekt.RSd = objekt.RSd
+     //            .Where(sd =>
+     //                (!req.VyfiltrovatPolozkyZacinajiciNulou || !sd.Znacka.StartsWith("0")) &&
+     //                (!req.VyfiltrovatSDsNulouVeZnacce || sd.Znacka != "0"))
+     //            .ToList();
+     //    }
+
+     //    // 3️⃣ Assign result
+     //    data = new ReportMereniPolozekZaObdobiExcelData
+     //    {
+     //        Stavba = stav
+     //    };
+     //}
+
+
+
+     //protected override async Task GetData()
+     //{
+     //    //C
+     //    var stav = await _ctx.SStavby
+     //        .AsNoTracking()
+     //        .AsSplitQuery()
+     //        .Where(s => s.XId == req.StavbaId)
+
+     //        .Include(s => s.SStavbyNastaveni)
+
+     //        .Include(s => s.RObjekty)
+     //            .ThenInclude(o => o.RSd)
+     //                .ThenInclude(sd => sd.RPol)
+     //                    .ThenInclude(p => p.KMjNavigation)
+
+     //        .Include(s => s.RObjekty)
+     //            .ThenInclude(o => o.RSd)
+     //                .ThenInclude(sd => sd.RPol)
+     //                    .ThenInclude(p => p.SSdPol
+     //                        .Where(m =>
+     //                            m.DatumMereni >= _od &&
+     //                            m.DatumMereni <= _do))
+     //                        .ThenInclude(sp => sp.KZbvNavigation)
+     //                            .ThenInclude(z => z.ZbvPol)
+
+     //        .FirstOrDefaultAsync();
+
+     //    if (stav == null)
+     //        throw new BadDataException("Stavba nenalezena");
+
+     //    // ✅ SAFE in-memory filtering of RSd
+     //    foreach (var objekt in stav.RObjekty)
+     //    {
+     //        objekt.RSd = objekt.RSd
+     //            .Where(sd =>
+     //                (!req.VyfiltrovatPolozkyZacinajiciNulou || !sd.Znacka.StartsWith("0")) &&
+     //                (!req.VyfiltrovatSDsNulouVeZnacce || sd.Znacka != "0"))
+     //            .ToList();
+     //    }
+
+     //    data = new ReportMereniPolozekZaObdobiExcelData
+     //    {
+     //        Stavba = stav
+     //    };
+     //}
+
+     //protected override async Task GetData()
+     //{
+     //    SStavby stav = null;
+     //    if (req.VyfiltrovatPolozkyZacinajiciNulou)
+     //    {
+     //        stav = _ctx.SStavby
+     //            .Include(x => x.SStavbyNastaveni)
+     //            .Include(x => x.RObjekty.Where(o => o.RSd.Any()))
+     //                .ThenInclude(x => x.RSd.Where(z => !(req.VyfiltrovatPolozkyZacinajiciNulou && z.Znacka.StartsWith("0"))))
+     //                    .ThenInclude(x => x.RPol)
+     //                        .ThenInclude(x => x.SSdPol.Where(y => y.DatumMereni >= _od && y.DatumMereni <= _do))
+     //                            .ThenInclude(x => x.KZbvNavigation)
+     //                                .ThenInclude(x => x.ZbvPol)
+     //            .Include(x => x.RObjekty.Where(o => o.RSd.Any()))
+     //                .ThenInclude(x => x.RSd.Where(z => !(req.VyfiltrovatPolozkyZacinajiciNulou && z.Znacka.StartsWith("0"))))
+     //                    .ThenInclude(x => x.RPol)
+     //                        .ThenInclude(x => x.KMjNavigation)
+     //            .Where(x => x.XId == req.StavbaId)
+     //            .AsNoTracking()
+     //            .AsSplitQuery()
+     //            .FirstOrDefault();
+     //    }
+     //    else
+     //    {
+     //        stav = _ctx.SStavby
+     //            .Include(x => x.SStavbyNastaveni)
+     //            .Include(x => x.RObjekty.Where(o => o.RSd.Any()))
+     //                .ThenInclude(x => x.RSd.Where(z => !(req.VyfiltrovatSDsNulouVeZnacce && z.Znacka.Equals("0"))))
+     //                    .ThenInclude(x => x.RPol)
+     //                        .ThenInclude(x => x.SSdPol.Where(y => y.DatumMereni >= _od && y.DatumMereni <= _do))
+     //                            .ThenInclude(x => x.KZbvNavigation)
+     //                                .ThenInclude(x => x.ZbvPol)
+     //            .Include(x => x.RObjekty.Where(o => o.RSd.Any()))
+     //                .ThenInclude(x => x.RSd.Where(z => !(req.VyfiltrovatSDsNulouVeZnacce && z.Znacka.Equals("0"))))
+     //                    .ThenInclude(x => x.RPol)
+     //                        .ThenInclude(x => x.KMjNavigation)
+     //            .Where(x => x.XId == req.StavbaId)
+     //            .AsNoTracking()
+     //            .AsSplitQuery()
+     //            .FirstOrDefault();
+     //    }
+
+     //    if (stav == null)
+     //        throw new BadDataException("Stavba nenalezena");
+
+     //    data = new ReportMereniPolozekZaObdobiExcelData { Stavba = stav };
+     //}
+
 
 
 
