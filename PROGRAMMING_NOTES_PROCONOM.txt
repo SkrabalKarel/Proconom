@@ -1,4 +1,13 @@
 ---------------------------
+PDB problem
+---------------------------
+
+Debug → Windows → Modules** while debugging. Find your DLL, right-click → *Symbol Load Information*. It will tell you exactly which PDB paths it tried and why each failed — this is the definitive diagnostic, faster than guessing.
+
+
+
+
+---------------------------
 GIT-workflow when switching among branches
 ---------------------------
 
