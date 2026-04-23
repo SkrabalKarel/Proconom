@@ -6,6 +6,59 @@ Debug → Windows → Modules** while debugging. Find your DLL, right-click → 
 
 
 
+Breakpoint turning into a hollow circle ("The breakpoint will not currently be hit. No symbols have been loaded...") is almost always stale PDBs or a symbol mismatch, not a code problem. Clear them in this order — stop as soon as breakpoints work again.
+
+**1. Close Visual Studio first.** Otherwise VS keeps PDBs locked and some deletes silently fail.
+
+**2. Delete per-project `bin` and `obj` folders.**
+From the solution root in PowerShell:
+```powershell
+Get-ChildItem -Include bin,obj -Recurse -Force | Remove-Item -Recurse -Force
+```
+This is the #1 cause in multi-project solutions like ProCONOM where one project references another's stale DLL+PDB pair.
+
+**3. Delete the `.vs` folder** next to the `.sln`. It caches breakpoint bindings and IntelliSense state that can go out of sync with rebuilt PDBs.
+
+**4. Clear the Visual Studio symbol cache.**
+- `Tools → Options → Debugging → Symbols → Empty Symbol Cache`
+- Default path: `%LOCALAPPDATA%\Temp\SymbolCache` — delete it manually if the button is greyed out.
+
+**5. Clear the ComponentModelCache and MEF cache** (only if VS itself is misbehaving, not just breakpoints):
+```
+%LOCALAPPDATA%\Microsoft\VisualStudio\<version>\ComponentModelCache
+```
+
+**6. Rebuild (not just Build).** `Build → Rebuild Solution`. Build won't touch up-to-date projects, so a stale PDB survives.
+
+### If breakpoints are still hollow after all of the above
+
+Check these settings — they cause the exact same symptom but no amount of cleaning will fix them:
+
+- **Configuration must be `Debug`**, not Release. Legacy solutions often have a custom config (`DebugInternal`, `DebugLocal`) where *some* projects are still set to Release — check `Build → Configuration Manager` project by project.
+- **Project properties → Build → Advanced → Debugging Information = Portable or Full** (not `None` or `Embedded` if you're mixing).
+- **Project properties → Build → Optimize code = OFF** for the project containing the breakpoint.
+- **Tools → Options → Debugging → General:**
+  - Uncheck *"Require source files to exactly match the original version"* (common culprit after git branch switch).
+  - Uncheck *"Enable Just My Code"* temporarily to confirm symbols actually load.
+- **Debug → Windows → Modules** while debugging. Find your DLL, right-click → *Symbol Load Information*. It will tell you exactly which PDB paths it tried and why each failed — this is the definitive diagnostic, faster than guessing.
+
+### WPF-specific gotcha
+
+If it's a WPF project and breakpoints in code-behind fail but XAML-generated `.g.cs` breakpoints work (or vice versa), delete `obj\Debug\<project>.g.cs` and the `.baml` files — the XAML compiler caches them and they get out of sync with the real PDB after partial builds. A Rebuild regenerates them.
+
+### Nuclear option
+
+```powershell
+# From solution root, VS closed:
+Remove-Item -Recurse -Force .vs
+Get-ChildItem -Include bin,obj -Recurse -Force | Remove-Item -Recurse -Force
+Remove-Item -Recurse -Force "$env:LOCALAPPDATA\Temp\SymbolCache"
+```
+Then reopen, Rebuild Solution, debug.
+
+
+
+
 
 ---------------------------
 GIT-workflow when switching among branches
