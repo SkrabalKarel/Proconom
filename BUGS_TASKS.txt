@@ -128,6 +128,138 @@ Goal
       cancellationToken);
 
   ---
+--------------- !!!!!!!!!!!!!!!!!! HIERARCHY !!!!!!!!!!!!!!!!!!!!!!!!!§
+ ---
+  What each entity actually is
+
+  ┌────────┬──────────────┬─────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ Entity │     Name     │                                         What it is                                          │
+  ├────────┼──────────────┼─────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ RSd    │ Stavební díl │ The section (SD) — a grouping, not a položka                                                │
+  ├────────┼──────────────┼─────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ RPol   │ Položka      │ The actual budget line item under an SD — this is what you call "pol"                       │
+  ├────────┼──────────────┼─────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ SSdPol │ Měření       │ A single measurement event for one RPol — records quantity measured on a specific date      │
+  ├────────┼──────────────┼─────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ ZbvPol │ ZBV položka  │ A line item within a change order — defines the allowed quantity for an RPol under that ZBV │
+  └────────┴──────────────┴─────────────────────────────────────────────────────────────────────────────────────────────┘
+
+  ---
+  Hierarchy
+
+  SStavby (stavba)
+    └── RObjekty (stavební objekt)
+          └── RSd (stavební díl — the section)
+                └── RPol (položka — budget line item)
+                      └── SSdPol (měření — one measurement record, date + quantity)
+                            └── KZbvNavigation (ZBV — change order header)
+                                  └── ZbvPol (položka ZBV — allowed quantity for RPol under this ZBV)
+
+  ---
+  Key distinction inside SSdPol
+
+  A measurement (SSdPol) can be either:
+  - SOD measurement — KZbv == null — measures progress against the original contract
+  - ZBV measurement — KZbv != null — measures progress against a specific change order
+
+  This is why SetPol splits them:
+  // SOD measurements only
+  pol.SSdPol.Where(x => x.KZbv == null)
+
+  // ZBV measurements only — handled separately in SetSSDPolZeZBV
+  pol.SSdPol.Where(x => x.KZbvNavigation != null && !x.KZbvNavigation.Stav)
+
+  So SSdPol is not a type of položka — it is a measurement event. RPol and ZbvPol are the two types of položky.
+
+  ---
+
+!!!!!!!!!!!!!!!!!!!! Final Complete Proposal !!!!!!!!!!!!!!!!!!!!!!!
+
+  Data hierarchy being loaded
+
+  SStavby (stavba)
+    └── RObjekty (objekty/SO)
+          └── RSd  ← NO LONGER FILTERED HERE
+                └── RPol (položky)  ← FILTER APPLIED HERE
+                      ├── KMjNavigation (unit of measure)
+                      └── SSdPol (individual measurements)  ← DATE FILTER HERE
+                            └── KZbvNavigation (ZBV)
+                                  └── ZbvPol
+
+  ---
+  What changes and why
+
+  RSd.Where(...) removed from both include paths.
+  Reason: filtering no longer happens at RSd level. All stavební díly are loaded regardless of their Znacka.
+
+  In-memory RPol filter added after the null check.
+  Reason: one flag is always active. The ternary picks the correct predicate — StartsWith or Contains — based on which flag is true. Items that match are removed from
+  sd.RPol. If all items under an RSd are removed, the SD disappears naturally via the existing x.RPol.Any() guard in SetSD (line 393) — no extra code needed there.
+
+  Date filter on SSdPol unchanged — still DB-side on the second include path.
+
+  ---
+  FILE: TiskReportApi/Helpers/ReportMereniPolozekZaObdobiExcel.cs
+  METHOD: GetData()
+
+  protected override async Task GetData()
+  {
+      SStavby stav = await _ctx.SStavby
+          .AsNoTracking()
+          .AsSplitQuery()
+          .Where(s => s.XId == req.StavbaId)
+
+          .Include(s => s.SStavbyNastaveni)
+
+          // First path — loads KMjNavigation (unit of measure)
+          .Include(s => s.RObjekty)
+              .ThenInclude(o => o.RSd)
+                  .ThenInclude(sd => sd.RPol)
+                      .ThenInclude(p => p.KMjNavigation)
+
+          // Second path — loads measurements filtered by date + ZBV
+          .Include(s => s.RObjekty)
+              .ThenInclude(o => o.RSd)
+                  .ThenInclude(sd => sd.RPol)
+                      .ThenInclude(p => p.SSdPol
+                          .Where(m =>
+                              m.DatumMereni >= _od &&
+                              m.DatumMereni <= _do))
+                          .ThenInclude(sp => sp.KZbvNavigation)
+                              .ThenInclude(z => z.ZbvPol)
+
+          .FirstOrDefaultAsync();
+
+      if (stav == null)
+          throw new BadDataException("Stavba nenalezena");
+
+      // Filter individual RPol items — one flag is always true
+      // VyfiltrovatPolozkyZacinajiciNulou → exclude items whose Znacka starts with "0"
+      // VyfiltrovatSDsNulouVeZnacce       → exclude items whose Znacka contains "0"
+      // RSd with no surviving items is excluded from output by SetSD's RPol.Any() check
+      foreach (var objekt in stav.RObjekty)
+          foreach (var sd in objekt.RSd)
+              sd.RPol = sd.RPol
+                  .Where(p => req.VyfiltrovatPolozkyZacinajiciNulou
+                      ? !p.Znacka.StartsWith("0")
+                      : !p.Znacka.Contains("0"))
+                  .ToList();
+
+      data = new ReportMereniPolozekZaObdobiExcelData
+      {
+          Stavba = stav
+      };
+  }
+
+  ---
+  After GetData() completes
+
+  - data.Stavba.RObjekty — all objekty of the stavba
+  - Each objekt.RSd — all SDs, no Znacka filter at this level
+  - Each sd.RPol — only položky that passed the RPol filter (Znacka does not start with "0" or does not contain "0", depending on which flag is active)
+  - Each pol.KMjNavigation — measurement unit (always loaded)
+  - Each pol.SSdPol — only measurements within the date range (or empty list if none)
+  - Each SSdPol.KZbvNavigation.ZbvPol — ZBV data for those measurements
 
 
 ------------------------------------------------------------------------------------------------------
