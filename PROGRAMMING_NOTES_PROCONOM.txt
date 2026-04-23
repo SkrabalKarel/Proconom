@@ -2,7 +2,7 @@
 Nswag download
 ---------------------------
 
-
+verzi 14.0.8 chceme, neupdatovat!!!!!!!!!!!
 
 https://github.com/RicoSuter/NSwag/releases?page=2
 
