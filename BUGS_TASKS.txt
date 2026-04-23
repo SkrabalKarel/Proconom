@@ -1,5 +1,14 @@
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29207/
 
+retrieving from claude!!!
+"show me the GroupManagerWindow multi-select fix proposal"
+
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29207/
+
 Goal
 
   Add checkbox "Nezahrnovat položky začínající na 0" to the Proměřené položky za období print widget. When checked, items (RPol) whose Znacka starts with
