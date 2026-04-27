@@ -9,6 +9,13 @@ retrieving from claude!!!
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29207/
 
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! VIDEO HOW TO SET DATA !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+"C:\Users\karel.skrabal\Videos\Záznamy obrazovky\Záznam obrazovky 2026-04-22 124141.mp4"
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
 Goal
 
   Add checkbox "Nezahrnovat položky začínající na 0" to the Proměřené položky za období print widget. When checked, items (RPol) whose Znacka starts with
