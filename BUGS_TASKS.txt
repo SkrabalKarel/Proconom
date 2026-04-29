@@ -84,6 +84,88 @@ tady je video s tím co mi popsala monik
   Done
 
   ---
+ ------------------
+  "Správa procesů workflow" — full API chain
+-------------------
+  1. DB column
+
+  FILE: DB\Data\DB\dbo\Tables\c_uzivatele_opravneni.sql:4
+  [pridani_wf] BIT CONSTRAINT [DF_c_uzivatele_opravneni_pridani_wf] DEFAULT ((1)) NOT NULL
+  Default is 1 (true) — every new user gets this permission by default.
+
+  ---
+  2. EF Model
+
+  FILE: EFModels\Models\CUzivateleOpravneni.cs:12
+  public bool PridaniWf { get; set; }
+
+  ---
+  3. GET — loading the checkbox value
+
+  FILE: TestApi\v1\Modules\Users\Handlers\GetUserAdminHandler.cs:114
+
+  AutoMapper maps DB → DTO:
+  .ForMember(d => d.WorkflowAdding, o => o.MapFrom(s => s.CUzivateleOpravneni.PridaniWf))
+  Returns UserAdminInfoDTO.WorkflowAdding = true/false to the FE.
+
+  ---
+  4. FE — displays the checkbox
+
+  FILE: src\admin\userDetailScene.tsx:877
+  checked={userData.user.workflowAdding}
+
+  ---
+  5. PUT — saving after "Uložit"
+
+  FILE: src\admin\userDetailScene.tsx:148
+  workflowAdding: userData.user.workflowAdding   // packed into UserAdminInfoDTO
+  Sent to PUT /api/users/admin → UpdateUserAdminHandler.cs
+
+  ---
+  6. Handler writes to DB
+
+  FILE: TestApi\v1\Modules\Users\Handlers\UpdateUserAdminHandler.cs:53
+  requestedUser.CUzivateleOpravneni.PridaniWf = request.User.WorkflowAdding;
+
+  ---
+  7. Auth — included in login response
+
+  FILE: TestApi\Auth\Helpers\LoginResponseHelper.cs:58
+  pridavaniWF: user.CUzivateleOpravneni.PridaniWf
+  Goes into UzivatelAuthDTO → saved to localStorage → into UserContext.
+
+  ---
+  8. FE — gates the UI buttons
+
+  FILE: src\workflow\components\workflowTemplates\workflowCard.tsx:173
+  {user?.pridavaniWF && (
+      <EditIcon />        // Aplikovat upravené
+      <ContentCopyIcon /> // Znovu aplikovat
+      <DeleteIcon />      // Smazat
+  )}
+
+  ---
+  Complete chain visualized
+
+  DB: c_uzivatele_opravneni.pridani_wf  (BIT, default 1)
+    ↕  EF scaffold
+  EFModel: CUzivateleOpravneni.PridaniWf  (bool)
+    ↕  AutoMapper
+  DTO: UserAdminInfoDTO.WorkflowAdding  (bool)
+    ↕  GET /api/users/admin/{id}
+  FE: userData.user.workflowAdding  → checkbox display
+    ↕  PUT /api/users/admin  (on Uložit)
+  Handler: PridaniWf = request.User.WorkflowAdding  → SaveChanges()
+    ↕  login / token refresh
+  Auth: UzivatelAuthDTO.PridavaniWF → localStorage → UserContext
+    ↕  every component
+  FE: user?.pridavaniWF → show/hide buttons
+
+  ---
+  This is exactly what we need to replicate twice for PridaniWfKopii and PridaniWfUpravou. Every step in this chain needs a
+  parallel entry for both new permissions.
+
+  ---
 
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
