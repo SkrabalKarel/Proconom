@@ -1,3 +1,146 @@
+
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_backlogs/backlog/PROCONOM%20Team/Stories/?workitem=27807
+
+
+ Complete Implementation Plan
+
+  What the 3 "process creation" actions actually are in the FE
+
+  ┌────────────────────────┬──────────────────────────────────┬─────────────────────────────────────────────────────────────┬───────────────────┐
+  │       FE action        │           Button label           │                          API call                           │     Current       │
+  │                        │                                  │                                                             │    permission     │
+  ├────────────────────────┼──────────────────────────────────┼─────────────────────────────────────────────────────────────┼───────────────────┤
+  │ "Nové WF" (from        │ handleNewWf in                   │ ApplyTemplatePattern                                        │ pridavaniWF       │
+  │ template)              │ templateCard.tsx:306             │                                                             │                   │
+  ├────────────────────────┼──────────────────────────────────┼─────────────────────────────────────────────────────────────┼───────────────────┤
+  │ "Aplikovat upravené"   │ Edit icon in                     │ ReapplyTemplatePattern (linear) / CreateComplexTemplate     │ pridavaniWF       │
+  │                        │ workflowCard.tsx:175             │ (complex)                                                   │                   │
+  ├────────────────────────┼──────────────────────────────────┼─────────────────────────────────────────────────────────────┼───────────────────┤
+  │ "Znovu aplikovat"      │ Copy icon in                     │ CopyWorkflowTemplate                                        │ pridavaniWF       │
+  │                        │ workflowCard.tsx:186             │                                                             │                   │
+  └────────────────────────┴──────────────────────────────────┴─────────────────────────────────────────────────────────────┴───────────────────┘
+
+  ---
+  Changes required — grouped by layer
+
+  ---
+  1. DB migration
+
+  - CUzivateleOpravneni → add PridaniWfKopii (bool, default false)
+  - CUzivateleOpravneni → add PridaniWfUpravou (bool, default false)
+  - WfSablony → add Aktivni (bool, default true)
+
+  ---
+  2. EFModels — Test_Nove_API\EFModels\Models\
+
+  - CUzivateleOpravneni.cs — add PridaniWfKopii, PridaniWfUpravou
+  - WfSablony.cs — add Aktivni
+
+  ---
+  3. API — handler permission checks
+
+  ┌──────────────────────────────────────────────┬─────────────────────────────────────────────────────┐
+  │                     File                     │                       Change                        │
+  ├──────────────────────────────────────────────┼─────────────────────────────────────────────────────┤
+  │ Handlers\CopyWorkflowTemplateHandler.cs:57   │ PridaniWf → PridaniWfKopii                          │
+  ├──────────────────────────────────────────────┼─────────────────────────────────────────────────────┤
+  │ Handlers\ReapplyTemplatePatternHandler.cs:51 │ PridaniWf → PridaniWfUpravou                        │
+  ├──────────────────────────────────────────────┼─────────────────────────────────────────────────────┤
+  │ Handlers\CreateComplexTemplateHandler.cs:40  │ SpravaSablonWf → SpravaSablonWf || PridaniWfUpravou │
+  ├──────────────────────────────────────────────┼─────────────────────────────────────────────────────┤
+  │ Handlers\ApplyTemplatePatternHandler.cs:57   │ unchanged                                           │
+  ├──────────────────────────────────────────────┼─────────────────────────────────────────────────────┤
+  │ Handlers\DeleteAppliedWFHandler.cs:32        │ unchanged                                           │
+  ├──────────────────────────────────────────────┼─────────────────────────────────────────────────────┤
+  │ Handlers\DeleteWorkflowStavbaHandler.cs:36   │ unchanged                                           │
+  └──────────────────────────────────────────────┴─────────────────────────────────────────────────────┘
+
+  All process-creation handlers + UpdateWFTemplateDescriptionHandler → add inactive template guard:
+  if (!template.Aktivni)
+      throw new BadDataException(_translateService.Translate("workflow.sablonaNeniAktivni"));
+
+  ---
+  4. API — new activation endpoint
+
+  - New file: Handlers\SetTemplateActiveHandler.cs — checks SpravaSablonWf, toggles WfSablony.Aktivni
+  - WorkflowController.cs — new route PUT /workflow/templates/{id}/activate
+  (note: POST /workflow/templates/{TemplateId}/active already exists but is GetWfByTemplate — different route name needed)
+
+  ---
+  5. API — GetAllTemplates
+
+  - Handlers\GetAllTemplatesHandler.cs — add Aktivni to TemplateDTO, sort inactive to bottom
+
+  ---
+  6. API — Admin / Auth
+
+  ┌────────────────────────────────────────────────────────────────┬──────────────────────────────────────────┐
+  │                              File                              │                  Change                  │
+  ├────────────────────────────────────────────────────────────────┼──────────────────────────────────────────┤
+  │ TestApi\v1\Modules\Users\Handlers\GetUserAdminHandler.cs:114   │ map PridaniWfKopii, PridaniWfUpravou     │
+  ├────────────────────────────────────────────────────────────────┼──────────────────────────────────────────┤
+  │ TestApi\v1\Modules\Users\Handlers\UpdateUserAdminHandler.cs:53 │ save PridaniWfKopii, PridaniWfUpravou    │
+  ├────────────────────────────────────────────────────────────────┼──────────────────────────────────────────┤
+  │ TestApi\v1\Modules\Users\Models\UserAdminInfoDTO               │ add 2 bool fields                        │
+  ├────────────────────────────────────────────────────────────────┼──────────────────────────────────────────┤
+  │ TestApi\Auth\Helpers\LoginResponseHelper.cs:58                 │ include new permissions in auth response │
+  ├────────────────────────────────────────────────────────────────┼──────────────────────────────────────────┤
+  │ Commons\Models\UzivatelAuthDTO.cs:147                          │ add mappings                             │
+  └────────────────────────────────────────────────────────────────┴──────────────────────────────────────────┘
+
+  ---
+  7. Web UI — permission checks
+
+  ┌──────────────────────┬────────────────────────────────┬─────────────────────────────────────────────────────────────────────────────────┐
+  │         File         │              Line              │                                     Change                                      │
+  ├──────────────────────┼────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
+  │ workflowCard.tsx:173 │ Edit icon "Aplikovat upravené" │ pridavaniWF → pridavaniWfUpravou                                                │
+  ├──────────────────────┼────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
+  │ workflowCard.tsx:186 │ Copy icon "Znovu aplikovat"    │ pridavaniWF → pridavaniWfKopii                                                  │
+  ├──────────────────────┼────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
+  │ workflowCard.tsx:193 │ Delete icon                    │ pridavaniWF → pridavaniWF (unchanged)                                           │
+  ├──────────────────────┼────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
+  │ templateCard.tsx:296 │ Edit template name icon        │ pridavaniWF → pridavaniWF (unchanged — edit name stays with process management) │
+  ├──────────────────────┼────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
+  │ templateCard.tsx:301 │ Delete template icon           │ pridavaniWF → pridavaniWF (unchanged)                                           │
+  ├──────────────────────┼────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
+  │ templateCard.tsx:306 │ "Nové WF" button               │ pridavaniWF → pridavaniWF (unchanged)                                           │
+  ├──────────────────────┼────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
+  │ workflowList.tsx:360 │ "Založit proces" button        │ add || user?.pridavaniWfKopii || user?.pridavaniWfUpravou                       │
+  └──────────────────────┴────────────────────────────────┴─────────────────────────────────────────────────────────────────────────────────┘
+
+  ---
+  8. Web UI — inactive template handling
+
+  - templateList.tsx — sort inactive templates to bottom (after GetAllTemplates returns Aktivni)
+  - templateCard.tsx — disable "Nové WF" button if !template.aktivni; visual indicator; add activate/deactivate button for spravaSablonWF users
+  - New API call: workflow_SetTemplateActive(id, active) — in templateCard.tsx
+
+  ---
+  9. Web UI — admin panel
+
+  userDetailScene.tsx (~line 876):
+  - Update tooltip for "Správa procesů workflow" — change from "Přidávání, kopírování, mazání..." to reflect new narrower scope
+  - Add 2 new checkboxes: PridaniWfKopii ("Vytvářet procesy kopií"), PridaniWfUpravou ("Vytvářet procesy úpravou")
+  - externalUserSettings.tsx — same changes (same panel for external users)
+
+  Note: SpravaSablonWf tooltip + activate/deactivation is covered by the existing checkbox, no new checkbox needed.
+
+  ---
+  Open question — still pending
+
+  Option A vs B (same endpoint for template management and úpravou): the CreateComplexTemplate handler needs to know whether it's being called from
+  template management context or process-by-editing context. Since they hit the same endpoint, Option A (allow if SpravaSablonWf || PridaniWfUpravou)
+   is simpler and doesn't require request changes.
+
+  ---
+  Ready to start implementing step by step. Which layer do you want to start with?
+
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28958
 
 retrieving from claude!!!
