@@ -1,20 +1,20 @@
 
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_backlogs/backlog/PROCONOM%20Team/Stories/?workitem=27807
---------------------
+------------------x
 zadání
 --------------------
 tady je video s tím co mi popsala monik
 "C:\Users\karel.skrabal\Documents\Záznam 2026-04-29 150832.mp4"
---------------------
+------------------x
 Scaffolding
 --------------------
 Scaffold-DbContext -Connection Name=Data -Project EFModels -OutputDir Models -Context DB_DevelopContext -Provider Microsoft.EntityFrameworkCore.SqlServer -StartupProject TestApi -force -NoPluralize -NoOnConfiguring
 
 
- ------------------------
+------------------x
   How the "Práva workflow" checkboxes work
--------------------------
+--------------------
 
   Step 1 — Page loads: API fetches UserAdminInfoDTO
 
@@ -90,9 +90,9 @@ Scaffold-DbContext -Connection Name=Data -Project EFModels -OutputDir Models -Co
   Done
 
   ---
- ------------------
+ ------------------x
   "Správa procesů workflow" — full API chain
--------------------
+--------------------
   1. DB column
 
   FILE: DB\Data\DB\dbo\Tables\c_uzivatele_opravneni.sql:4
@@ -170,6 +170,224 @@ Scaffold-DbContext -Connection Name=Data -Project EFModels -OutputDir Models -Co
   ---
   This is exactly what we need to replicate twice for PridaniWfKopii and PridaniWfUpravou. Every step in this chain needs a
   parallel entry for both new permissions.
+
+  ---
+------------------x
+Implementace
+--------------------
+
+ What I confirmed by reading the code
+
+  ┌─────────────────────────────────────────────────────────────────────┬──────────────────────────────────────────────────────┐
+  │                               Finding                               │                        Impact                        │
+  ├─────────────────────────────────────────────────────────────────────┼──────────────────────────────────────────────────────┤
+  │ CopyWorkflowTemplateHandler.cs:57 — checks PridaniWf                │ Change to PridaniWfKopii                             │
+  ├─────────────────────────────────────────────────────────────────────┼──────────────────────────────────────────────────────┤
+  │ ReapplyTemplatePatternHandler.cs:51 — checks PridaniWf              │ Change to PridaniWfUpravou                           │
+  ├─────────────────────────────────────────────────────────────────────┼──────────────────────────────────────────────────────┤
+  │ CreateComplexTemplateHandler.cs:40 — checks SpravaSablonWf          │ Add `                                                │
+  ├─────────────────────────────────────────────────────────────────────┼──────────────────────────────────────────────────────┤
+  │ ApplyTemplatePatternHandler.cs:57 — checks PridaniWf                │ Unchanged — this is "Nové WF"                        │
+  ├─────────────────────────────────────────────────────────────────────┼──────────────────────────────────────────────────────┤
+  │ GetAllTemplatesHandler.cs:56 — TemplateDTO missing Aktivni          │ Add Aktivni field + sort inactive to bottom          │
+  ├─────────────────────────────────────────────────────────────────────┼──────────────────────────────────────────────────────┤
+  │ WfSablony.cs — missing Aktivni column                               │ Add to EF model                                      │
+  ├─────────────────────────────────────────────────────────────────────┼──────────────────────────────────────────────────────┤
+  │ CUzivateleOpravneni.cs — missing PridaniWfKopii, PridaniWfUpravou   │ Add both                                             │
+  ├─────────────────────────────────────────────────────────────────────┼──────────────────────────────────────────────────────┤
+  │ UzivatelAuthDTO.cs — constructor uses named params                  │ 2 new optional bool? params added to the end         │
+  ├─────────────────────────────────────────────────────────────────────┼──────────────────────────────────────────────────────┤
+  │ LoginResponseHelper.cs:58-70 — manual constructor call              │ 2 new named params at call site                      │
+  ├─────────────────────────────────────────────────────────────────────┼──────────────────────────────────────────────────────┤
+  │ UzivatelAuthDTO.cs:147-158 — AutoMapper profile                     │ 2 new .ForMember lines                               │
+  ├─────────────────────────────────────────────────────────────────────┼──────────────────────────────────────────────────────┤
+  │ GetUserAdminHandler.cs:59+ — UserAdminInfoDTO + its Profile         │ 2 new bool fields + 2 new .ForMember lines           │
+  ├─────────────────────────────────────────────────────────────────────┼──────────────────────────────────────────────────────┤
+  │ UpdateUserAdminHandler.cs:53 — manual property assignments          │ 2 new assignment lines                               │
+  ├─────────────────────────────────────────────────────────────────────┼──────────────────────────────────────────────────────┤
+  │ WorkflowController.cs:289 — POST templates/{TemplateId}/active      │ New activate route needs different path, e.g. PUT    │
+  │ exists but is "GetWfByTemplate"                                     │ templates/{id}/set-active                            │
+  └─────────────────────────────────────────────────────────────────────┴──────────────────────────────────────────────────────┘
+
+  ---
+  Confirmed full scope — BE only
+
+  Layer 1 — DB migration
+
+  ALTER TABLE Data_Master.dbo.CUzivateleOpravneni
+    ADD PridaniWfKopii BIT NOT NULL DEFAULT 0,
+        PridaniWfUpravou BIT NOT NULL DEFAULT 0;
+
+  ALTER TABLE Data_Master.dbo.WfSablony
+    ADD Aktivni BIT NOT NULL DEFAULT 1;
+
+  ---
+  Layer 2 — EF Models
+
+  FILE: EFModels\Models\CUzivateleOpravneni.cs
+  Add after PridaniWf:
+  public bool PridaniWfKopii { get; set; }
+  public bool PridaniWfUpravou { get; set; }
+
+  FILE: EFModels\Models\WfSablony.cs
+  Add after ZamknoutDokumenty:
+  public bool Aktivni { get; set; }
+
+  ---
+  Layer 3 — Handler permission checks
+
+  FILE: TestApi\v1\Modules\Workflow\Handlers\CopyWorkflowTemplateHandler.cs:57
+  // BEFORE:
+  if (!user.CUzivateleOpravneni.PridaniWf)
+  // AFTER:
+  if (!user.CUzivateleOpravneni.PridaniWfKopii)
+  Also add inactive guard after template null check (line ~55):
+  if (!oldTemplate.Aktivni)
+      throw new BadDataException(_translateService.Translate("workflow.sablonaNeniAktivni"));
+
+  FILE: TestApi\v1\Modules\Workflow\Handlers\ReapplyTemplatePatternHandler.cs:51
+  // BEFORE:
+  if (!claimant.CUzivateleOpravneni.PridaniWf)
+  // AFTER:
+  if (!claimant.CUzivateleOpravneni.PridaniWfUpravou)
+  Also add inactive guard after templatePattern load (line ~61):
+  if (!templatePattern.Aktivni)
+      throw new BadDataException(_translateService.Translate("workflow.sablonaNeniAktivni"));
+
+  FILE: TestApi\v1\Modules\Workflow\Handlers\CreateComplexTemplateHandler.cs:40
+  // BEFORE:
+  if (!claimant.CUzivateleOpravneni.SpravaSablonWf)
+  // AFTER:
+  if (!claimant.CUzivateleOpravneni.SpravaSablonWf && !claimant.CUzivateleOpravneni.PridaniWfUpravou)
+  Note: CreateComplexTemplate is called for complex WF "apply with edit" from FE. It's also called for template management. Both
+  paths hit same endpoint — both SpravaSablonWf and PridaniWfUpravou must be allowed.
+
+  Also need WfSablony (pattern) reference here to add inactive guard. Let me verify the handler loads the pattern.
+
+  FILE: TestApi\v1\Modules\Workflow\Handlers\ApplyTemplatePatternHandler.cs
+  Add inactive guard after templatePattern load (line ~76):
+  if (!templatePattern.Aktivni)
+      throw new BadDataException(_translateService.Translate("workflow.sablonaNeniAktivni"));
+  Permission check PridaniWf stays unchanged — "Nové WF" stays with original permission.
+
+  ---
+  Layer 4 — New activate/deactivate endpoint
+
+  New FILE: TestApi\v1\Modules\Workflow\Handlers\SetTemplateActiveHandler.cs
+  public class SetTemplateActiveHandler : IRequestHandler<SetTemplateActiveRequest, EmptyActionResponse>
+  {
+      // checks SpravaSablonWf, sets WfSablony.Aktivni = request.Aktivni
+  }
+
+  public class SetTemplateActiveRequest : IRequest<EmptyActionResponse>
+  {
+      public int Id { get; set; }
+      public bool Aktivni { get; set; }
+  }
+
+  FILE: TestApi\v1\Modules\Workflow\WorkflowController.cs
+  New route — cannot use /active (already taken by GetWfByTemplate):
+  [HttpPut("patterns/{Id}/set-active")]
+  [Authorize(Roles = Role.V1User)]
+  public async Task<ActionResult<EmptyActionResponse>> SetTemplateActive([FromBody] SetTemplateActiveRequest request) => await
+  ResolveResponse(request);
+
+  ---
+  Layer 5 — GetAllTemplates — add Aktivni
+
+  FILE: TestApi\v1\Modules\Workflow\Handlers\GetAllTemplatesHandler.cs
+
+  In TemplateDTO:
+  public bool Aktivni { get; set; }
+
+  In the LINQ projection — add:
+  Aktivni = x.Aktivni,
+
+  In the final sort — inactive templates go to bottom:
+  .OrderBy(x => x.Aktivni ? 0 : 1)
+  .ThenByDescending(x => x.ApplicatedWfCount)
+  .ThenBy(x => x.Name)
+  .ToList();
+
+  ---
+  Layer 6 — Auth / Admin
+
+  FILE: Commons\Models\UzivatelAuthDTO.cs
+
+  Add 2 new properties:
+  public bool? PridaniWfKopii { get; set; }
+  public bool? PridaniWfUpravou { get; set; }
+
+  Add to constructor (optional named params at end):
+  bool? pridaniWfKopii = null,
+  bool? pridaniWfUpravou = null
+  And in body:
+  PridaniWfKopii = pridaniWfKopii;
+  PridaniWfUpravou = pridaniWfUpravou;
+
+  Add to UzivatelAuthProfile (AutoMapper):
+  .ForMember(d => d.PridaniWfKopii, o => o.MapFrom(s => s.CUzivateleOpravneni.PridaniWfKopii))
+  .ForMember(d => d.PridaniWfUpravou, o => o.MapFrom(s => s.CUzivateleOpravneni.PridaniWfUpravou))
+
+  FILE: TestApi\Auth\Helpers\LoginResponseHelper.cs
+
+  In the UzivatelAuthDTO constructor call (~line 58), add named params:
+  pridaniWfKopii: user.CUzivateleOpravneni.PridaniWfKopii,
+  pridaniWfUpravou: user.CUzivateleOpravneni.PridaniWfUpravou,
+
+  FILE: TestApi\v1\Modules\Users\Handlers\GetUserAdminHandler.cs
+
+  In UserAdminInfoDTO, add:
+  public bool WorkflowCopyAdding { get; set; }
+  public bool WorkflowModifyAdding { get; set; }
+
+  In UserAdminInfoDTOProfile, add:
+  .ForMember(d => d.WorkflowCopyAdding, o => o.MapFrom(s => s.CUzivateleOpravneni.PridaniWfKopii))
+  .ForMember(d => d.WorkflowModifyAdding, o => o.MapFrom(s => s.CUzivateleOpravneni.PridaniWfUpravou))
+
+  FILE: TestApi\v1\Modules\Users\Handlers\UpdateUserAdminHandler.cs:53
+
+  Add two lines after line 53:
+  requestedUser.CUzivateleOpravneni.PridaniWfKopii = request.User.WorkflowCopyAdding;
+  requestedUser.CUzivateleOpravneni.PridaniWfUpravou = request.User.WorkflowModifyAdding;
+
+  Also check if the same admin panel is used for external users — GetExternalUserAdminHandler.cs may also need the same treatment.
+
+  ---
+  One open question before I start
+
+  CreateComplexTemplateHandler — I need to verify it actually loads the source WfSablony pattern to be able to add the inactive
+  guard. Should I read that file fully now, or do you want to start file by file from Layer 1?
+
+  ---
+  Web UI spec (for whoever implements it)
+
+  ┌────────────────────────────────────────────────────┬───────────────────────────────────────────────────────────────────────┐
+  │                     Component                      │                                Change                                 │
+  ├────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────┤
+  │ Auth response → user.pridaniWfKopii,               │ FE reads from auth, drives buttons                                    │
+  │ user.pridaniWfUpravou available                    │                                                                       │
+  ├────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────┤
+  │ workflowCard.tsx:173 — Edit icon "Aplikovat        │ gate on user.pridaniWfUpravou                                         │
+  │ upravené"                                          │                                                                       │
+  ├────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────┤
+  │ workflowCard.tsx:186 — Copy icon "Znovu aplikovat" │ gate on user.pridaniWfKopii                                           │
+  ├────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────┤
+  │ workflowCard.tsx:193 — Delete icon                 │ unchanged (pridaniWF)                                                 │
+  ├────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────┤
+  │ templateCard.tsx:306 — "Nové WF" button            │ unchanged (pridaniWF), also disable if !template.aktivni              │
+  ├────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────┤
+  │ templateCard.tsx — add activate/deactivate button  │ visible only when user.spravaSablonWF, calls PUT                      │
+  │                                                    │ /workflow/patterns/{id}/set-active                                    │
+  ├────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────┤
+  │ workflowList.tsx:360 — "Založit proces" button     │ show if `pridaniWF                                                    │
+  ├────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────┤
+  │ templateList.tsx                                   │ sort inactive to bottom (already done server-side, but FE can also    │
+  │                                                    │ apply visual dimming)                                                 │
+  ├────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────┤
+  │ Admin panel (userDetailScene.tsx ~876)             │ Rename tooltip for PridaniWf, add 2 new checkboxes:                   │
+  │                                                    │ WorkflowCopyAdding, WorkflowModifyAdding                              │
+  └────────────────────────────────────────────────────┴───────────────────────────────────────────────────────────────────────┘
 
   ---
 
