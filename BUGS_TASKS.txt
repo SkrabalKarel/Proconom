@@ -6,140 +6,84 @@ tady je video s tím co mi popsala monik
 "C:\Users\karel.skrabal\Documents\Záznam 2026-04-29 150832.mp4"
 
 
- Complete Implementation Plan
+ ------------------------
+  How the "Práva workflow" checkboxes work
+-------------------------
 
-  What the 3 "process creation" actions actually are in the FE
+  Step 1 — Page loads: API fetches UserAdminInfoDTO
 
-  ┌────────────────────────┬──────────────────────────────────┬─────────────────────────────────────────────────────────────┬───────────────────┐
-  │       FE action        │           Button label           │                          API call                           │     Current       │
-  │                        │                                  │                                                             │    permission     │
-  ├────────────────────────┼──────────────────────────────────┼─────────────────────────────────────────────────────────────┼───────────────────┤
-  │ "Nové WF" (from        │ handleNewWf in                   │ ApplyTemplatePattern                                        │ pridavaniWF       │
-  │ template)              │ templateCard.tsx:306             │                                                             │                   │
-  ├────────────────────────┼──────────────────────────────────┼─────────────────────────────────────────────────────────────┼───────────────────┤
-  │ "Aplikovat upravené"   │ Edit icon in                     │ ReapplyTemplatePattern (linear) / CreateComplexTemplate     │ pridavaniWF       │
-  │                        │ workflowCard.tsx:175             │ (complex)                                                   │                   │
-  ├────────────────────────┼──────────────────────────────────┼─────────────────────────────────────────────────────────────┼───────────────────┤
-  │ "Znovu aplikovat"      │ Copy icon in                     │ CopyWorkflowTemplate                                        │ pridavaniWF       │
-  │                        │ workflowCard.tsx:186             │                                                             │                   │
-  └────────────────────────┴──────────────────────────────────┴─────────────────────────────────────────────────────────────┴───────────────────┘
+  When you open a user's admin page, it calls getUser(userId) which hits:
 
-  ---
-  Changes required — grouped by layer
+  GET /api/users/admin/{id} → GetUserAdminHandler.cs
+
+  Returns UserAdminInfoDTO which contains all the checkbox values:
+  workflowAdding: true
+  workflowReporting: true
+  workflowTemplateManaging: true
+  ...
+
+  This gets stored in local React state: userData.user
 
   ---
-  1. DB migration
+  Step 2 — Checkbox is ticked: only local state updates
 
-  - CUzivateleOpravneni → add PridaniWfKopii (bool, default false)
-  - CUzivateleOpravneni → add PridaniWfUpravou (bool, default false)
-  - WfSablony → add Aktivni (bool, default true)
+  When you tick/untick a checkbox, nothing is sent to the API yet. It just updates userData in memory:
 
-  ---
-  2. EFModels — Test_Nove_API\EFModels\Models\
-
-  - CUzivateleOpravneni.cs — add PridaniWfKopii, PridaniWfUpravou
-  - WfSablony.cs — add Aktivni
-
-  ---
-  3. API — handler permission checks
-
-  ┌──────────────────────────────────────────────┬─────────────────────────────────────────────────────┐
-  │                     File                     │                       Change                        │
-  ├──────────────────────────────────────────────┼─────────────────────────────────────────────────────┤
-  │ Handlers\CopyWorkflowTemplateHandler.cs:57   │ PridaniWf → PridaniWfKopii                          │
-  ├──────────────────────────────────────────────┼─────────────────────────────────────────────────────┤
-  │ Handlers\ReapplyTemplatePatternHandler.cs:51 │ PridaniWf → PridaniWfUpravou                        │
-  ├──────────────────────────────────────────────┼─────────────────────────────────────────────────────┤
-  │ Handlers\CreateComplexTemplateHandler.cs:40  │ SpravaSablonWf → SpravaSablonWf || PridaniWfUpravou │
-  ├──────────────────────────────────────────────┼─────────────────────────────────────────────────────┤
-  │ Handlers\ApplyTemplatePatternHandler.cs:57   │ unchanged                                           │
-  ├──────────────────────────────────────────────┼─────────────────────────────────────────────────────┤
-  │ Handlers\DeleteAppliedWFHandler.cs:32        │ unchanged                                           │
-  ├──────────────────────────────────────────────┼─────────────────────────────────────────────────────┤
-  │ Handlers\DeleteWorkflowStavbaHandler.cs:36   │ unchanged                                           │
-  └──────────────────────────────────────────────┴─────────────────────────────────────────────────────┘
-
-  All process-creation handlers + UpdateWFTemplateDescriptionHandler → add inactive template guard:
-  if (!template.Aktivni)
-      throw new BadDataException(_translateService.Translate("workflow.sablonaNeniAktivni"));
+  // FILE: userDetailScene.tsx:879
+  onChange={(e, checked) => {
+      setUserData({
+          user: {
+              ...userData.user,
+              workflowAdding: checked,   // ← just updates local state
+          },
+          ...
+      });
+      setChanged(true);  // ← enables the "Uložit" button
+  }}
 
   ---
-  4. API — new activation endpoint
+  Step 3 — "Uložit" button: sends everything to API
 
-  - New file: Handlers\SetTemplateActiveHandler.cs — checks SpravaSablonWf, toggles WfSablony.Aktivni
-  - WorkflowController.cs — new route PUT /workflow/templates/{id}/activate
-  (note: POST /workflow/templates/{TemplateId}/active already exists but is GetWfByTemplate — different route name needed)
+  When you click Uložit, handleSave() runs. It builds a UserAdminInfoDTO from the current local state and sends it to:
 
-  ---
-  5. API — GetAllTemplates
+  PUT /api/users/admin → UpdateUserAdminHandler.cs
 
-  - Handlers\GetAllTemplatesHandler.cs — add Aktivni to TemplateDTO, sort inactive to bottom
+  // FILE: userDetailScene.tsx:138-169
+  const user: UserAdminInfoDTO = {
+      id: userData.user.id,
+      workflowAdding: userData.user.workflowAdding,        // ← from checkbox
+      workflowTemplateManaging: userData.user.workflowTemplateManaging,
+      ...
+  };
+  await client.users_UpdateUserAdmin({ user });
 
-  ---
-  6. API — Admin / Auth
-
-  ┌────────────────────────────────────────────────────────────────┬──────────────────────────────────────────┐
-  │                              File                              │                  Change                  │
-  ├────────────────────────────────────────────────────────────────┼──────────────────────────────────────────┤
-  │ TestApi\v1\Modules\Users\Handlers\GetUserAdminHandler.cs:114   │ map PridaniWfKopii, PridaniWfUpravou     │
-  ├────────────────────────────────────────────────────────────────┼──────────────────────────────────────────┤
-  │ TestApi\v1\Modules\Users\Handlers\UpdateUserAdminHandler.cs:53 │ save PridaniWfKopii, PridaniWfUpravou    │
-  ├────────────────────────────────────────────────────────────────┼──────────────────────────────────────────┤
-  │ TestApi\v1\Modules\Users\Models\UserAdminInfoDTO               │ add 2 bool fields                        │
-  ├────────────────────────────────────────────────────────────────┼──────────────────────────────────────────┤
-  │ TestApi\Auth\Helpers\LoginResponseHelper.cs:58                 │ include new permissions in auth response │
-  ├────────────────────────────────────────────────────────────────┼──────────────────────────────────────────┤
-  │ Commons\Models\UzivatelAuthDTO.cs:147                          │ add mappings                             │
-  └────────────────────────────────────────────────────────────────┴──────────────────────────────────────────┘
+  The API handler then writes straight to DB:
+  // UpdateUserAdminHandler.cs:53
+  requestedUser.CUzivateleOpravneni.PridaniWf = request.User.WorkflowAdding;
+  requestedUser.CUzivateleOpravneni.SpravaSablonWf = request.User.WorkflowTemplateManaging;
 
   ---
-  7. Web UI — permission checks
+  Full flow
 
-  ┌──────────────────────┬────────────────────────────────┬─────────────────────────────────────────────────────────────────────────────────┐
-  │         File         │              Line              │                                     Change                                      │
-  ├──────────────────────┼────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
-  │ workflowCard.tsx:173 │ Edit icon "Aplikovat upravené" │ pridavaniWF → pridavaniWfUpravou                                                │
-  ├──────────────────────┼────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
-  │ workflowCard.tsx:186 │ Copy icon "Znovu aplikovat"    │ pridavaniWF → pridavaniWfKopii                                                  │
-  ├──────────────────────┼────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
-  │ workflowCard.tsx:193 │ Delete icon                    │ pridavaniWF → pridavaniWF (unchanged)                                           │
-  ├──────────────────────┼────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
-  │ templateCard.tsx:296 │ Edit template name icon        │ pridavaniWF → pridavaniWF (unchanged — edit name stays with process management) │
-  ├──────────────────────┼────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
-  │ templateCard.tsx:301 │ Delete template icon           │ pridavaniWF → pridavaniWF (unchanged)                                           │
-  ├──────────────────────┼────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
-  │ templateCard.tsx:306 │ "Nové WF" button               │ pridavaniWF → pridavaniWF (unchanged)                                           │
-  ├──────────────────────┼────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
-  │ workflowList.tsx:360 │ "Založit proces" button        │ add || user?.pridavaniWfKopii || user?.pridavaniWfUpravou                       │
-  └──────────────────────┴────────────────────────────────┴─────────────────────────────────────────────────────────────────────────────────┘
+  Page open
+    ↓
+  GET /api/users/admin/{id}  →  UserAdminInfoDTO
+    ↓
+  userData.user.workflowAdding = true  (shown in checkbox)
 
-  ---
-  8. Web UI — inactive template handling
+  User ticks/unticks checkbox
+    ↓
+  setUserData(...)  ← only local state, no API call
 
-  - templateList.tsx — sort inactive templates to bottom (after GetAllTemplates returns Aktivni)
-  - templateCard.tsx — disable "Nové WF" button if !template.aktivni; visual indicator; add activate/deactivate button for spravaSablonWF users
-  - New API call: workflow_SetTemplateActive(id, active) — in templateCard.tsx
+  User clicks "Uložit"
+    ↓
+  PUT /api/users/admin  ←  sends full UserAdminInfoDTO
+    ↓
+  UpdateUserAdminHandler writes to CUzivateleOpravneni table
+    ↓
+  Done
 
   ---
-  9. Web UI — admin panel
-
-  userDetailScene.tsx (~line 876):
-  - Update tooltip for "Správa procesů workflow" — change from "Přidávání, kopírování, mazání..." to reflect new narrower scope
-  - Add 2 new checkboxes: PridaniWfKopii ("Vytvářet procesy kopií"), PridaniWfUpravou ("Vytvářet procesy úpravou")
-  - externalUserSettings.tsx — same changes (same panel for external users)
-
-  Note: SpravaSablonWf tooltip + activate/deactivation is covered by the existing checkbox, no new checkbox needed.
-
-  ---
-  Open question — still pending
-
-  Option A vs B (same endpoint for template management and úpravou): the CreateComplexTemplate handler needs to know whether it's being called from
-  template management context or process-by-editing context. Since they hit the same endpoint, Option A (allow if SpravaSablonWf || PridaniWfUpravou)
-   is simpler and doesn't require request changes.
-
-  ---
-  Ready to start implementing step by step. Which layer do you want to start with?
-
 
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
