@@ -2,6 +2,9 @@
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_backlogs/backlog/PROCONOM%20Team/Stories/?workitem=27807
 
+tady je video s tím co mi popsala monik
+"C:\Users\karel.skrabal\Documents\Záznam 2026-04-29 150832.mp4"
+
 
  Complete Implementation Plan
 
