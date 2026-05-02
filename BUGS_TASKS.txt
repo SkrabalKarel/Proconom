@@ -393,6 +393,139 @@ Implementace
   └────────────────────────────────────────────────────┴───────────────────────────────────────────────────────────────────────┘
 
   ---
+--------------------x
+ Postman Test Tutorial — WF Action Rights
+--------------------
+
+  ---
+  Prerequisites
+
+  - API running on https://localhost:44301
+  - SSL verification disabled in Postman (Settings → SSL certificate verification → OFF)
+
+  ---
+  Step 1 — Master auth
+
+  POST https://localhost:44301/api/anonym/auth/authenticate/master
+
+  - Authorization → No Auth
+  - Body → raw → JSON:
+  {
+    "userName": "skrabal@proconom.cz",
+    "password": "lopataCDE1*"
+  }
+  From response copy: authToken
+
+  ---
+  Step 2 — Get JWT token
+
+  POST https://localhost:44301/api/Auth/databasetoken
+
+  - Authorization → Bearer Token → paste authToken from Step 1
+  - Body → raw → JSON:
+  {
+    "database": "Data_Develop"
+  }
+  From response copy: uzivatel.token — use this as Bearer Token in all steps below
+
+  ---
+  Step 3 — Template list has Aktivni field
+
+  GET https://localhost:44301/api/workflow/template/all?ItemId=1&ItemType=2&CountType=0
+
+  - Authorization → Bearer Token → uzivatel.token
+
+  ✅ Each template has "aktivni": true/false
+  ✅ Inactive templates are sorted to the bottom
+
+  ---
+  Step 4 — Deactivate a template
+
+  Pick any id from Step 3 response.
+
+  PUT https://localhost:44301/api/workflow/patterns/{id}/set-active
+
+  - Authorization → Bearer Token → uzivatel.token
+  - Body → raw → JSON:
+  false
+  ✅ Response: 200 {}
+
+  Rerun Step 3 — that template now has "aktivni": false and is at the bottom.
+
+  ---
+  Step 5 — Reactivate the same template
+
+  PUT https://localhost:44301/api/workflow/patterns/{id}/set-active
+
+  - Same as Step 4 but body:
+  true
+  ✅ Response: 200 {}
+
+  ---
+  Step 6 — Admin user detail has new rights fields
+
+  GET https://localhost:44301/api/users/user/5/admin
+
+  - Authorization → Bearer Token → uzivatel.token
+
+  ✅ Response contains "workflowAddingCopy" and "workflowAddingEdited"
+
+  ---
+  Step 7 — Save new rights
+
+  PUT https://localhost:44301/api/users/user/admin
+
+  - Authorization → Bearer Token → uzivatel.token
+  - Body → raw → JSON:
+  {
+    "user": {
+      "id": 5,
+      "firstName": "Administrátor",
+      "lastName": "Administrátor",
+      "email": "skrabal@proconom.cz",
+      "function": null,
+      "organization": null,
+      "administrator": true,
+      "notificationsApp": false,
+      "notificationsEmail": true,
+      "workflowAdding": true,
+      "workflowAddingCopy": true,
+      "workflowAddingEdited": true,
+      "workflowReporting": true,
+      "workflowTemplateManaging": true,
+      "workflowDeadlinesManaging": true,
+      "workflowRolesManaging": true,
+      "documentsUpload": true,
+      "documentVersionsRead": true,
+      "documentsDelete": true,
+      "constructionAndSectionDelete": true,
+      "constructionSettings": true,
+      "tds": true,
+      "spravaPolozkaMereni": true,
+      "subcontractor": false,
+      "attendenceType": 0,
+      "phoneNumber": null,
+      "forgeCustomProperties": true,
+      "viewAllTodos": true,
+      "forgeFilterManagement": true,
+      "forgePhotoCoordinationManagement": true,
+      "lockTodos": true,
+      "manageUsersConstructionRights": true,
+      "manageExternalTenders": true
+    }
+  }
+  ✅ Response: 200 {}
+
+  Rerun Step 6 — confirm workflowAddingCopy and workflowAddingEdited are true.
+
+  ---
+  Step 8 — Login response has new fields
+
+  Repeat Steps 1 + 2. In the databasetoken response look for:
+  "pridaniWfKopii": true,
+  "pridaniWfUpravou": true
+  ✅ These should match what you saved in Step 7.
+
 
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
