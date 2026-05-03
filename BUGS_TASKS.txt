@@ -3,6 +3,7 @@
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_backlogs/backlog/PROCONOM%20Team/Stories/?workitem=27807
 
 "continue WF action rights task"
+"show me the WF action rights curl tests"
 
 ------------------x
 zadání
