@@ -1,3 +1,33 @@
+
+---------------------------
+curl endpoints testing 
+---------------------------
+
+"show me the curl testing flow for API"
+
+ 1. Login
+
+  PREAUTH=$(curl -sk -X POST https://localhost:44301/api/anonym/auth/authenticate/master \
+    -H "Content-Type: application/json" \
+    -d '{"userName":"skrabal@proconom.cz","password":"Cman2018KS","idp":1}' | jq -r '.authToken')
+
+  2. Get database token
+
+  TOKEN=$(curl -sk -X POST https://localhost:44301/api/auth/databasetoken \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $PREAUTH" \
+    -d '{"database":"Data_Develop"}' | jq -r '.uzivatel.token')
+
+  Verify both worked
+
+  echo "PREAUTH: $PREAUTH"
+  echo "TOKEN: $TOKEN"
+
+  ---
+  After this, $TOKEN is ready — use it in any endpoint call with -H "Authorization: Bearer $TOKEN".
+
+
+
 ---------------------------
 Nswag download
 ---------------------------
