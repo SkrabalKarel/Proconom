@@ -818,6 +818,82 @@ Goal
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28964
 
 
+--------------x
+changes 6.5.2026
+PR
+--------------
+ Branch: develop_28964_ksk_ZBVapprovedConstructionManager (api repo)
+
+  ---
+  1. Merge conflict resolution — EFModels\Models\DB_DevelopContext.cs
+
+  - Resolved 307 merge conflicts from develop merge
+  - All conflicts were auto-generated constraint name hashes (PK, FK, UQ) — no structural differences
+  - Resolved by accepting the develop side for all 307
+
+  ---
+  2. Bug fix — EFModels\Interfaces\PriceEntity.cs
+
+  Problem: GetPricesActualZp accepted schvaleneZbvOnly parameter but never passed it through. It called GetPricesZbvZp(DateTime, DateTime) — the date
+   overload without approval filtering. This caused CELKEM / PROSTAVĚNO to show unfiltered values even when the checkbox was on.
+
+  Fix A — new overload (after line 136):
+  Added GetPricesZbvZp(DateTime datumOd, DateTime datumDo, bool schvaleneZbvOnly) — combines date range + ZBV approval filter.
+
+  Fix B — passthrough (line 198):
+  Changed GetPricesZbvZp(datumOd.Value, datumDo.Value) → GetPricesZbvZp(datumOd.Value, datumDo.Value, schvaleneZbvOnly).
+
+  Existing GetPricesZbvZp(DateTime, DateTime) overload intentionally unchanged — used by VratRekapitulaciObjektuHandler.
+
+  ---
+  3. Rename per code review (František Jukl) — 4 files
+
+  Renamed schvaleneOnly → schvaleneZbvOnly to avoid confusion with approved measurements/invoices.
+
+  ┌───────────────────────────────────────────────────────────────────┬──────────────────────────────────┐
+  │                               File                                │         What was renamed         │
+  ├───────────────────────────────────────────────────────────────────┼──────────────────────────────────┤
+  │ EFModels\Interfaces\PriceEntity.cs                                │ All method parameters and usages │
+  ├───────────────────────────────────────────────────────────────────┼──────────────────────────────────┤
+  │ TestApi\v1\Modules\ManagerStaveb\ManagerStavebController.cs       │ Query param + assignment         │
+  ├───────────────────────────────────────────────────────────────────┼──────────────────────────────────┤
+  │ TestApi\v1\Modules\ManagerStaveb\Handlers\GetCenyStavbyHandler.cs │ Property + usage                 │
+  ├───────────────────────────────────────────────────────────────────┼──────────────────────────────────┤
+  │ TestApi.UnitTests\Units\CenyStavby\CenyTest.cs                    │ GetPrices() override signature   │
+  └───────────────────────────────────────────────────────────────────┴──────────────────────────────────┘
+
+  ---
+  4. NSwag-friendly pattern per code review (František Jukl) — 2 files
+
+  Moved [FromQuery] from controller method parameter to request model property.
+
+  GetCenyStavbyHandler.cs:
+  - Added using Microsoft.AspNetCore.Mvc;
+  - Added [FromQuery] attribute on SchvaleneZbvOnly property
+
+  ManagerStavebController.cs:
+  - Reverted to one-liner: GetCenyStavby([FromRoute] GetCenyStavbyRequest request) => await ResolveResponse(request);
+  - Removed separate [FromQuery] bool parameter and manual assignment block
+
+  ---
+  Files changed (total: 5)
+
+  ┌───────────────────────────────────────────────────────────────────┬───────────────────────────────────────────────┐
+  │                               File                                │                    Changes                    │
+  ├───────────────────────────────────────────────────────────────────┼───────────────────────────────────────────────┤
+  │ EFModels\Models\DB_DevelopContext.cs                              │ 307 merge conflicts resolved                  │
+  ├───────────────────────────────────────────────────────────────────┼───────────────────────────────────────────────┤
+  │ EFModels\Interfaces\PriceEntity.cs                                │ Bug fix (new overload + passthrough) + rename │
+  ├───────────────────────────────────────────────────────────────────┼───────────────────────────────────────────────┤
+  │ TestApi\v1\Modules\ManagerStaveb\ManagerStavebController.cs       │ Rename + NSwag pattern                        │
+  ├───────────────────────────────────────────────────────────────────┼───────────────────────────────────────────────┤
+  │ TestApi\v1\Modules\ManagerStaveb\Handlers\GetCenyStavbyHandler.cs │ Rename + NSwag pattern + using                │
+  ├───────────────────────────────────────────────────────────────────┼───────────────────────────────────────────────┤
+  │ TestApi.UnitTests\Units\CenyStavby\CenyTest.cs                    │ Rename                                        │
+  └───────────────────────────────────────────────────────────────────┴───────────────────────────────────────────────┘
+
+
+---------------x
 prompt :
 in wpf ui in Login.xaml is ....
 
