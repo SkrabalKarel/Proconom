@@ -1,5 +1,16 @@
 
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29411/
+
+
+  - "continue bug 29411 scroll fix" — picks up Part 2 (scroll position) with all failed attempts documented
+  - "continue WF action rights task" — for the remaining PR items (migration script, PR reply)
+
+  Good session — sorting fix works, scroll needs more investigation tomorrow. Have a good evening.
+
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_backlogs/backlog/PROCONOM%20Team/Stories/?workitem=27807
 ------------------x
 PR changes
