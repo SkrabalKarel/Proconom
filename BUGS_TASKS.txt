@@ -1,6 +1,27 @@
 
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_backlogs/backlog/PROCONOM%20Team/Stories/?workitem=27807
+------------------x
+PR changes
+--------------------
+
+Summary of changes in this session
+
+  Merge: Merged develop into develop_27807_ksk_WFActionRights — resolved 3 conflicts (wf_sablony.sql, WfSablony.cs, GetAllTemplatesHandler.cs) by
+  keeping both sides.
+
+  Bug fix: Missing comma in GetAllTemplatesHandler.cs:66 — merge artifact.
+
+  PR review fixes (František):
+  - SetTemplateActiveHandler.cs — Single() → SingleAsync(), SaveChanges() → SaveChangesAsync()
+  - c_uzivatele_opravneni.sql — DEFAULT changed from 0 → 1 for pridani_wf_kopii and pridani_wf_upravou
+
+  PR review dismissed:
+  - Endpoint binding (Issue #1) — false positive from automated reviewer, works correctly
+  - ZobrazitSchvaleneZbv — not from this PR, came from scaffold via develop merge
+
+
+
 
 "continue WF action rights task"
 "show me the WF action rights curl tests"
