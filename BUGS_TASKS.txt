@@ -580,6 +580,9 @@ retrieving from claude!!!
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29207/
 
+připomínka z PR aby se netiskly tiskovky s 0 naměřenou hodnotou -> je hotov ,ale mezi tím PR byl změněn na stav COMPLETE
+úpravu jsem pushnul na vzdálené repo
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!! VIDEO HOW TO SET DATA !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 "C:\Users\karel.skrabal\Videos\Záznamy obrazovky\Záznam obrazovky 2026-04-22 124141.mp4"
