@@ -2347,6 +2347,11 @@ in app should follow this language setting.
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29003/
 
+UPRAVA JE HOTOVA, TESTOVAT S BARCOU
+1 HOD
+develop_29003_ksk_foldersTree
+video z testování "C:\Users\karel.skrabal\Documents\Test1\Source\Záznam 2026-05-08 191637.mp4"
+
 In ucSlozkovaStruktura.xaml is btnZalozStrukturu that has btnZalozStrukturu_Click that adds a new item to the end of lvSablony. The task is to add a new item to the begining of the listView, not to the end. Summarize, ask for addiditional information if propt is fully descriptive.
 
 -------------------------------------------------------------------------------------------------
