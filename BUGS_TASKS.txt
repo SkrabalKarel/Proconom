@@ -1,6 +1,11 @@
 
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29411/
+ÚKOL JE HOTOVÝ , OTESTOVAT S BARČOU
+vykázat 2 hodiny
+
+tady je záznam testování
+"C:\Users\karel.skrabal\Documents\Test1\Source\Záznam 2026-05-08 173538.mp4"
 
 branch na API develop_29411_ksk_WFgridWrongRefresh jsem vytvořil proto abych rozjel problém s db!!!!!!! PAK SMAZAT TUTO BRANCH !!!!!!!!!!
 
