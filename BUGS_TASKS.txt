@@ -1,5 +1,15 @@
 
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29413/
+Odeslat hlášení (error report) - nefunkční tlačítko Náhled screenshotu
+
+
+hotovo -> otestovat s barčou -> POZOR !!!!!!! JE TAM TESTOVACÍ KÓD KTERÝ SE NESMÍ DOSTAT DO PRODUKCE !!!!!!!!!
+hodiny -> zapsáno do 7.5.
+
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29411/
 ÚKOL JE HOTOVÝ , OTESTOVAT S BARČOU
 vykázat 2 hodiny
