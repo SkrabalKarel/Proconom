@@ -8,6 +8,41 @@ hotovo -> otestovat s barčou -> POZOR !!!!!!! JE TAM TESTOVACÍ KÓD KTERÝ SE 
 hodiny -> zapsáno do 7.5.
 
 
+ Root Cause
+
+  Screenshot() calls were accidentally commented out during a merge fix by Michal Nekvasil on Aug 19, 2020 (commit 5c8df2dbf). Additionally, when
+  email sending was migrated from direct SMTP to API, attachment support was lost (the API SendEmailToSupportRequest has no attachment field).
+
+  Changes — 2 files modified
+
+  1. Proconom\eConoM\SharedControls\MessageWindow.xaml.cs — Screenshot capture restored
+
+  - Line 392-393: Uncommented Screenshot() call in Show(... height, width) overload
+  - Line 420-421: Uncommented Screenshot() call in Show(... default params) overload
+
+  This re-enables screenshot capture when an Error dialog appears, creating both Err_Screen_Temp_Monocorp.bmp and _cp.bmp in %TEMP%.
+
+  2. Proconom\eConoM\SharedControls\ErrorWindowReport.xaml.cs — Screenshot embedded in email body
+
+  - Lines 146-174: Replaced the old msg.Attachments.Add() (which was silently dropped by the API) with inline base64 image embedding:
+    - Reads the BMP screenshot
+    - Resizes to 75% dimensions
+    - Converts to JPEG at quality 90 (~1MB email size)
+    - Embeds as <img src="data:image/jpeg;base64,..."> in the email body
+    - On failure, appends a message explaining why the screenshot couldn't be attached
+
+  What now works
+
+  - "Náhled screenshotu" button — opens the screenshot in the default image viewer
+  - "Připojit vygenerovaný screenshot" checkbox — enabled when screenshot exists
+  - Email — contains the screenshot as an inline image in the body
+
+  Temporary test changes — all NOT reverted
+
+  - ~~`StavbySectionControl.xaml.cs—throw new Exception`~~ — removed
+  - ~~`ErrorWindowReport.xaml.cs— email redirected to test address~~ — restored toservis@proconom.cz`
+
+
 ------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29411/
