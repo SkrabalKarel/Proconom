@@ -1,4 +1,47 @@
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29476/
+Desktop- Administrátor- práva uživatele- SEKCE WF
+
+HODINY ZAPSÁNY DO 11.5.
+TESTOVAT S BARČOU
+
+Bug #29476 — Desktop - Administrátor - práva uživatele - SEKCE WF
+
+  Problem
+
+  When a user had "Správa šablon workflow" enabled but "Správa procesů workflow" disabled, the pencil edit button (rename template) in the "Workflow
+  šablony" dialog was disabled/greyed out. The user could see templates but not edit their names.
+
+  Root Cause
+
+  The pencil button's IsEnabled and the code-behind guard were both checking the wrong permission — PridavaniWF (Správa procesů workflow) instead of
+  SpravaSablonWF (Správa šablon workflow).
+
+  Changes Made
+
+  ┌─────┬────────────────────────────────────────────────────┬──────┬─────────────────────────────────────────────────────────────────────────────┐
+  │  #  │                        File                        │ Line │                                What changed                                 │
+  ├─────┼────────────────────────────────────────────────────┼──────┼─────────────────────────────────────────────────────────────────────────────┤
+  │ 1   │ Proconom\eConoM\WorkFlow\WinWorkFlowCreate.xaml    │ 379  │ IsEnabled binding changed from Login.PridavaniWF → Login.SpravaSablonWF     │
+  ├─────┼────────────────────────────────────────────────────┼──────┼─────────────────────────────────────────────────────────────────────────────┤
+  │ 2   │ Proconom\eConoM\WorkFlow\WinWorkFlowCreate.xaml.cs │ 87   │ Permission guard in ButtonEditWorkFlow_Click changed from                   │
+  │     │                                                    │      │ App.Login.PridavaniWF → App.Login.SpravaSablonWF                            │
+  └─────┴────────────────────────────────────────────────────┴──────┴─────────────────────────────────────────────────────────────────────────────┘
+
+  What Was NOT Changed (and why)
+
+  Other buttons in the same dialog that also use PridavaniWF were left untouched — they control process-level operations (applying, copying, deleting
+   workflow instances), not template management. Specifically:
+  - "Přidat" button (line 418) — applies WF to a node
+  - "PencilPlus" button (line 559) — edit-copy of applied WF
+  - "ContentCopy" button (line 579) — re-apply WF
+  - "TrashOutline" on applied WF (line 599) — delete applied WF
+
+  These correctly require PridavaniWF (Správa procesů workflow).
+
+
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29413/
 Odeslat hlášení (error report) - nefunkční tlačítko Náhled screenshotu
