@@ -1,4 +1,16 @@
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29507
+Bug 29507: Desktop - manažer staveb - widget - po kliknutí na kanban pád softwaru
+
+DPH Overflow Issue — Summary
+
+  Root cause: SQL function uf_faktury_stavba_pocet_po_dnech_kumulativne declares DPH variables as NUMERIC(4,2) (max 99.99). When s_stavby_nastaveni
+  contains DPH value >= 100, the function crashes with Arithmetic overflow error converting int to data type numeric.
+
+přidaná validace a pár kočičin na spuštění widgetu canban
+
+---------------------------------------------------------------------------------------------------------------------------------------
+
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29464/
 desktop - docházka - při úpravě stávajícího záznamu musím znovu vyplnit projekt
