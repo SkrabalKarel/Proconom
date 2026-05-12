@@ -1,4 +1,24 @@
 
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29464/
+desktop - docházka - při úpravě stávajícího záznamu musím znovu vyplnit projekt
+
+Bug 29464 — Docházka: při úpravě záznamu chybí projekt
+
+  Problém: Při editaci existujícího záznamu docházky přes tužku se v okně nezobrazoval přiřazený projekt, i když na záznamu byl uložený.
+
+  Příčina: CiselnikButtonBox v XAML neměl binding na KodStavba. Data se při editaci správně načetla (konstruktor volal LoadStavby(inpt.KodStavba)),
+  ale UI control o hodnotě nevěděl — chybělo propojení.
+
+  Fix: Přidán Kod_Ciselnik="{Binding KodStavba, Mode=TwoWay}" na CiselnikButtonBox.
+
+  FILE: Proconom\eConoM\Stavby\Detaily\DochazkaEditControl.xaml, line 206
+
+  Rozsah změny: 1 řádek v XAML, žádná změna chování u nových záznamů ani jiných typů práce.
+
+-----------------------------------------------------------------------------------------------------------------------------------
+
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29476/
 Desktop- Administrátor- práva uživatele- SEKCE WF
 
