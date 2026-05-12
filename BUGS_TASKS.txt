@@ -1,4 +1,93 @@
 
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29498/
+Desktop- WF- přidala jsem do diskuze obrázek z DMS a následně ho v DMS nalistovala-> 2x šipka zpět
+
+netestováné !!!!!
+
+OK, I understand now. Here's my analysis and proposed fix.
+
+  Root Cause
+
+  The DMS grid has two mechanisms for showing the ".." back arrow:
+  1. UnBoundRow at position "Top" (row index 1) — the "proper" back arrow at the top
+  2. Data row from FolderContent — the actual ".." item in the data source
+
+  The CollapseNavUpRow method is supposed to hide the data row (since the UnBoundRow handles it). But it only checks e.RowIndex == 2, assuming ".."
+  is always the first data row. When the grid is sorted in descending order, ".." ends up at the BOTTOM of the list, and CollapseNavUpRow doesn't
+  catch it.
+
+  FILE: Proconom\eConoM\Widgety\Dokumenty\DokumentyWidgetControl.xaml.cs
+  METHOD: CollapseNavUpRow
+  LINE: 6009
+
+  Current code:
+  private void CollapseNavUpRow(SfDataGrid dataGrid, QueryRowHeightEventArgs e)
+  {
+      if (dataGrid is null)
+          return;
+      DFileDC navUpItem = GetNavUpItem(dataGrid);
+      DFileDC viewedNavUpItem = GetViewedNavUpItem(dataGrid);
+      bool noNavUpItem = navUpItem is null && viewedNavUpItem is null;
+      if (e.RowIndex == 1 && noNavUpItem)
+      {
+          CollapseRow(e);
+          return;
+      }
+      bool navUpItemIsFilteredOut = navUpItem is null || viewedNavUpItem is null;
+      if (e.RowIndex == 2 && !navUpItemIsFilteredOut)  // ← BUG: only checks row 2
+      {
+          CollapseRow(e);
+          return;
+      }
+  }
+
+  Proposed Fix
+
+  Replace the hardcoded e.RowIndex == 2 check with logic that identifies the ".." row at any position:
+
+  private void CollapseNavUpRow(SfDataGrid dataGrid, QueryRowHeightEventArgs e)
+  {
+      if (dataGrid is null)
+          return;
+      DFileDC navUpItem = GetNavUpItem(dataGrid);
+
+      // Collapse UnBoundRow when no ".." item in source
+      if (e.RowIndex == 1 && navUpItem is null)
+      {
+          CollapseRow(e);
+          return;
+      }
+
+      // Collapse the ".." data row wherever it appears (could be sorted to any position)
+      if (navUpItem is not null && e.RowIndex >= 2 && !dataGrid.IsUnBoundRow(e.RowIndex))
+      {
+          object record = dataGrid.GetRecordAtRowIndex(e.RowIndex);
+          if (record is DFileDC file && file.Nazev == "..")
+          {
+              CollapseRow(e);
+              return;
+          }
+      }
+  }
+
+  Key changes:
+  - Instead of only checking row index 2, checks ALL data rows (e.RowIndex >= 2)
+  - Uses GetRecordAtRowIndex (already used elsewhere in this file, e.g., line 1986) to identify the actual data at each row
+  - Collapses the row only if it contains the ".." item
+  - Simplified UnBoundRow check: only depends on navUpItem (from raw ItemsSource), not viewedNavUpItem
+
+  INTENTIONALLY UNCHANGED:
+  - GetNavUpItem / GetViewedNavUpItem methods — still useful for the UnBoundRow data population in LvDokumentySlozky_QueryUnboundRowInfo
+  - AddReturn() logic — the ".." item still needs to exist in FolderContent for navigation to work
+  - FileComparer — the * direction logic there is correct for keeping folders/".." pinned when the grid handles sort reversal; the real issue is the
+  collapse logic
+
+
+
+---------------------------------------------------------------------------------------------------------------------------------------
+
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29507
 Bug 29507: Desktop - manažer staveb - widget - po kliknutí na kanban pád softwaru
 
