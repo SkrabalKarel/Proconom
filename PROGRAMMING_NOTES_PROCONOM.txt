@@ -658,6 +658,9 @@ GIT - output log
 outputs log for the actual day and yesterday
 git log --oneline --name-only --pretty=format:"%h %an %ar - %s" --after="yesterday"
 
+output log for xxxx date in "2026-05-12" for branch prerelease
+git log origin/prerelease --since="2026-05-13" --format="%h %ai %an - %s"
+
 ChatGPT prompts:
 ----------------
 *****
