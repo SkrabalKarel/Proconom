@@ -1,5 +1,25 @@
 
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29508/
+Bug 29508: Desktop - ESD - deník objektu - po překliknutí dne se vrátím na hlavní esd
+
+Summary — Bug #29508
+
+  Bug: V ESD deníku, při překliknutí dne (šipkou < / >), se výběr v levém stromě vždy přeskočil na hlavní deník stavby, místo aby zůstal na vybraném
+  objektovém deníku.
+
+  Root cause: NactiStrom() na řádku 1749 vždy nastavil stavba.IsSelected = true na kořenový uzel stromu — i když uživatel stál na podřízeném objektu.
+   Mechanismus rememberPath() / ObjectToSelect sice existoval a zapamatoval si vybraný objekt, ale selekce kořene se spustila dřív, než se strom
+  stihl expandovat a vybrat správný potomek.
+
+  Fix: Podmínka if (ObjectToSelect == null) před stavba.IsSelected = true — kořen se vybere jen pokud žádný potomek nečeká na výběr.
+
+  FILE: eConoM\ProconomSections\StavDenikSectionControl.xaml.cs
+  METHOD: NactiStrom()
+  LINE: 1749
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29498/
 Desktop- WF- přidala jsem do diskuze obrázek z DMS a následně ho v DMS nalistovala-> 2x šipka zpět
 
