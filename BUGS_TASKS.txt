@@ -1,4 +1,38 @@
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29503/
+Bug 29503: Desktop- WF- schválení kroku- mám tam ale akce (vyjmout) po schválení a po schválení vznikne konflikt
+
+Bug 29503 — Summary of Yesterday's Partial Fix
+
+  Bug: WF step approval with "cut" (vyjmout) action — when the target folder already contains files with the same name,
+  a conflict dialog appears with a confusing/doubled message.
+
+  Issues reported:
+  1. The conflict message shows "V cíli již existuje soubor se stejným názvem:" twice — once hardcoded as a prefix, and
+  once coming from res.Message (which already contains that text from the API)
+  2. "Schválit a automaticky vyřešit konflikty" takes too long, and users had to close and redo it
+
+  What was changed:
+
+  - FILE: eConoM/Servers/WorkflowServer/WorkflowServer.cs
+  - LINE: ~115 (the CUT / CUT_PASTE_WITH_PATHS case)
+  - Change: Removed the hardcoded prefix Properties.Resources.strVCiliJizExistujeSouborSeStejnymNazvem +
+  Environment.NewLine + from the dialog message, so now only res.Message is shown — eliminating the duplicate text.
+
+  Before:
+  MessageWindow.Dialog.Show(Properties.Resources.strVCiliJizExistujeSouborSeStejnymNazvem + Environment.NewLine +
+  res.Message, ...)
+
+  After:
+  MessageWindow.Dialog.Show(res.Message, ...)
+
+  Branch: prerelease_29503_ksk_WFStepAproval (merged with latest prerelease, clean — no uncommitted changes)
+
+  Status: Partial fix — the duplicate message issue (#1) is resolved. The performance issue (#2 — "schválit a
+  automaticky vyřešit konflikty" being slow) was not addressed in this commit.
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29508/
 Bug 29508: Desktop - ESD - deník objektu - po překliknutí dne se vrátím na hlavní esd
