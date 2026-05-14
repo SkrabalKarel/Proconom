@@ -1,4 +1,12 @@
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28318/
+User Story 28318: api - Administrator - práva na dokumenty - ve skupině "všichni" zobrazovat jen uživatele s právem na vybranou stavbu
+
+To retrieve this later, say: "continue task 28318 DMS user filtering"
+
+-------------------------------------------------------------------------------------------------------------------------------------
+
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29503/
 Bug 29503: Desktop- WF- schválení kroku- mám tam ale akce (vyjmout) po schválení a po schválení vznikne konflikt
 
