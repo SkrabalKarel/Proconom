@@ -10,6 +10,37 @@ To retrieve this later, say: "continue task 28318 DMS user filtering"
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29503/
 Bug 29503: Desktop- WF- schválení kroku- mám tam ale akce (vyjmout) po schválení a po schválení vznikne konflikt
 
+
+Summary
+
+  Issue #29503 — WF step approval conflict dialog message fix
+
+  Branch: prerelease_29503_ksk_WFStepAproval (1 feature commit + 1 merge from prerelease)
+
+  What changed:
+
+  FILE: eConoM/Servers/WorkflowServer/WorkflowServer.cs
+  LINE: ~115
+
+  A single-line change in the conflict dialog that appears during WF step approval when a CUT or CUT_PASTE_WITH_PATHS action triggers a file name conflict.
+
+  Before:
+  MessageWindow.Dialog.Show(
+      Properties.Resources.strVCiliJizExistujeSouborSeStejnymNazvem + Environment.NewLine + res.Message, ...)
+
+  After:
+  MessageWindow.Dialog.Show(
+      res.Message, ...)
+
+  What it does: The dialog previously prepended a hardcoded prefix string (strVCiliJizExistujeSouborSeStejnymNazvem — something like "V cíli již existuje soubor se stejným
+  názvem") before the server's response message. Now it shows only res.Message — the server response alone.
+
+  Why: The commit message says the problem was that after WF step approval, the "cut" (vyjmout) action could produce a conflict, and the dialog message was presumably
+  wrong/redundant — the server's res.Message likely already contains the full conflict description, so the extra prefix was duplicating or misrepresenting the information.
+
+  Scope: Very small, surgical fix — 1 file, 1 line, dialog text only. No logic or behavior change beyond what the user sees in the dialog.
+
+
 Bug 29503 — Summary of Yesterday's Partial Fix
 
   Bug: WF step approval with "cut" (vyjmout) action — when the target folder already contains files with the same name,
