@@ -4,6 +4,38 @@ User Story 28318: api - Administrator - práva na dokumenty - ve skupině "všic
 
 To retrieve this later, say: "continue task 28318 DMS user filtering"
 
+Task 28318 — Summary
+
+  Bug: In the GroupManager dialog ("Nastavení skupin"), all document permission groups — including the root "Všichni" group —
+  showed users who were denied access to the selected construction. No filtering against the CUzivateleStavbyPristup deny list was
+  applied.
+
+  Root cause: GetDocumentGroupsByConstructionHandler loaded groups with users via a plain EF Include(CUzivateleVazbySkupiny)
+  without checking construction access rights.
+
+  Fix: Added an optional query parameter ExcludeDeniedUsers (default false) to the existing GET api/dokumenty/group endpoint. When
+  true, the handler queries the deny list and removes denied users from all groups before returning. WPF passes true, web UI
+  doesn't pass it — zero impact on existing consumers.
+
+  Files changed
+
+  API (1 file):
+  - Test_Nove_API\TestApi\v1\Modules\Dokumenty\Handlers\DocumentGroup\GetDocumentGroupsByConstructionHandler.cs — added
+  ExcludeDeniedUsers property to request + post-processing filter in handler
+
+  WPF (4 files):
+  - Proconom\ProconomApi\ProconomApiClient.cs — NSwag regenerated
+  - Proconom\eConoM\Servers\GroupManagerServer\IGroupManagerServer.cs — added optional param to interface
+  - Proconom\eConoM\Servers\GroupManagerServer\GroupManagerServer.cs — passes param to NSwag client
+  - Proconom\eConoM\Moduly\Admin\GroupManager\GroupManagerContext.cs:344 — passes excludeDeniedUsers: true
+
+  Related: User Story 23779 (closed) solved the same problem for the web UI using a different approach. Our fix reuses the existing
+   endpoint with backward-compatible opt-in filtering.
+
+
+
+
+
 -------------------------------------------------------------------------------------------------------------------------------------
 
 
