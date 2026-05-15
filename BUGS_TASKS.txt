@@ -2377,6 +2377,66 @@ https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29036/
 
 branch prerelease_28936_ksk_endpointyMereniWeb obsahuje infrastrukturu pro různé výstupy tisků, tohle musí být implementováné -> A TO JE!!!!!!
 
+--------------------------------------
+
+Summary of This Session
+
+  Merge
+
+  - Merged develop into develop_29036_ksk_PrintingBudget — no conflicts, 55 files staged, committed successfully
+  - Fixed missing DB column zobrazit_schvalene_zbv on test database pcm_master_test (not Prerelease-2026-5-12-8-54 which is a different DB)
+
+  Commit History Analysis
+
+  - Reviewed all 4 work commits + 4 merge commits on the branch
+  - Identified 2 other-team commits that actually reached your branch via develop merge:
+    - David Eisler — renamed tiskovka in GetKomplexniSoupisPraciDataHandler
+    - František Jukl — added TestAuthHandler + noscope auth
+  - Jan Smutný's SeedBuilder (origin/develop_28993_Smutny_api_seedbuilder) is NOT in your branch — not merged to develop yet
+
+  Meeting Notes Integration
+
+  - Analyzed 2 meeting documents (pics) and mapped action items to your tests
+  - Identified priorities: 403 tests, 401 tests, error message assertions, parameter variations, Excel endpoints
+
+  New Tests Written (12 total)
+
+  GetSoupisPraciDataTest.cs — 4 new parameter variation tests:
+  - BezCen_Desktop (SCenami=false)
+  - ZaokrouhleniNaNulu_Desktop (ZaokrouhliCenyNaNulaDM=true)
+  - ZaDodavatele_Desktop (triggers different SQL procedure)
+  - BezCen_Web
+  - Helper methods extended with optional params — existing tests unaffected
+
+  GetSoupisPraciZbvDataTest.cs — 4 new parameter variation tests:
+  - BezCen_Desktop, Souhrnny_Desktop, ZaokrouhleniNaCelaCisla_Desktop, BezCen_Web
+  - Helper methods extended similarly
+
+  GetSoupisPraciExcelTest.cs — new file, 4 tests for 2 Excel endpoints:
+  - GetKomplexniExcelSoupisPraci_EmptyStavba_ThrowsStavbaEmpty
+  - GetKomplexniExcelSoupisPraci_NonExistentStavba_ThrowsNullRef
+  - GetSoupisPraciZBVExcel_ValidStavbaWithZbv_Returns200
+  - GetSoupisPraciZBVExcel_NonExistentStavba_ThrowsIndexOutOfRange
+
+  Bugs Discovered by Tests (3)
+
+  ┌─────────────────────────────────────────────┬─────────────────────────────────────────────────────────────────────────┬───────────┐
+  │                   Handler                   │                                   Bug                                   │ File:Line │
+  ├─────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────┼───────────┤
+  │ GetKomplexniExcelSoupisPraciZaStavbuHandler │ FirstOrDefault() without null check → NullReferenceException            │ :38       │
+  ├─────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────┼───────────┤
+  │ GetKomplexniExcelSoupisPraciZaStavbuHandler │ Empty stavba throws generic Exception, not BadRequest                   │ :86       │
+  ├─────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────┼───────────┤
+  │ UspZbvTiskZapisProcedure                    │ DataRowCollection[0] without row count check → IndexOutOfRangeException │ :47       │
+  └─────────────────────────────────────────────┴─────────────────────────────────────────────────────────────────────────┴───────────┘
+
+  All three are missing input validation — exactly what the meeting notes flagged ("sjednotit hlášky"). Tests currently document the actual (broken)
+  behavior with // BUG: comments and // TODO: for future happy-path tests once RPol seeding is available.
+
+  Test Count: 21 → 33
+
+-----------------------------------------
+
 widget-tisk-stavba-web-variants.md (13:52) — Updated the WidgetTiskStavba web variant coverage table (10 buttons, which have /web variants, which
   don't; buttons #8 and #10 TiskDesktopController refactoring proposal status).
 
