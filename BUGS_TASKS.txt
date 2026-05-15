@@ -2,6 +2,33 @@
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28318/
 User Story 28318: api - Administrator - práva na dokumenty - ve skupině "všichni" zobrazovat jen uživatele s právem na vybranou stavbu
 
+Summary of Fix — Task 28318
+
+  Problem: In the "Nastavení skupin" window, when adding a new user to a group (e.g. "Skupina - Skupina"), the user picker popup ("Uživatel")
+  showed ALL users instead of only those with rights to the selected construction ("Ukázková - Stavba").
+
+  Root cause: Broken WPF binding. The CiselnikButtonBox at line 1193 of GroupManagerWindow.xaml was inside a DataTemplate with DataType=User, so
+  {Binding ConstructionId} resolved against the User object — which has no such property. The binding silently failed, Kod_Stavba stayed null,
+  and the API returned all users unfiltered.
+
+  Fix: One-line XAML change.
+
+  FILE: Proconom\eConoM\Moduly\Admin\GroupManager\GroupManagerWindow.xaml
+  LINE: 1193
+
+  ┌────────────────────────────────────┬─────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │               Before               │                                                After                                                │
+  ├────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Kod_Stavba="{Binding               │ Kod_Stavba="{Binding DataContext.SelectedConstruction.Id, RelativeSource={RelativeSource            │
+  │ ConstructionId}"                   │ AncestorType=Window}}"                                                                              │
+  └────────────────────────────────────┴─────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+  What it fixes: Both the inline autocomplete search and the full dialog window (CiselnikBaseWindow → ucCisUzivatele) now receive the correct
+  construction ID, which flows to GetAllUzivateleHandler where CUzivateleStavbyPristup filtering is already implemented.
+
+  Files changed: 1 (XAML only, no API or code-behind changes needed).
+
+
 To retrieve this later, say: "continue task 28318 DMS user filtering"
 
 Task 28318 — Summary
