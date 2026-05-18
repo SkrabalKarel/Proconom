@@ -4,6 +4,8 @@ https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28057/?wor
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28057/?workitem=29612
 Feature 28057: todo - hromadný export todo do pdf
 
+"continue task 28057 bulk todo PDF export"
+
 Implementation Plan — Feature 28057: Bulk ToDo PDF Export
 
   What stays untouched
