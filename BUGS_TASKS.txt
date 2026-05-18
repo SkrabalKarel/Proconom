@@ -1,4 +1,81 @@
 
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28057/?workitem=28057
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28057/?workitem=29612
+Feature 28057: todo - hromadný export todo do pdf
+
+Implementation Plan — Feature 28057: Bulk ToDo PDF Export
+
+  What stays untouched
+
+  - Single ToDo print flow (btnPrintToDo_Click → TiskToDoDetail → ReportServer.GetToDoDetailReport) — zero changes
+  - "Tisknout i přílohy" dropdown — works as before for single selection
+  - BCF export, delete, double-click handlers — no changes
+  - ReportToDoDetail_PDF class — reused as-is, not modified
+
+  ---
+  API (Test_Nove_API) — 2 changes
+
+  Step: 1a
+  File: TiskReportApi\Modules\Reports\Handlers\GetToDoDetailBulkDataHandler.cs (NEW)
+  What: New GetToDoDetailBulkDataRequest with List<int> ToDoIds + handler that loops per ID, creates ReportToDoDetail_PDF(TiskZDokumentu=false) for
+    each, merges all into single PDF via PdfDocumentBase.Merge(). Follows existing pattern from GetRekapitulaceCerpaniPolozekHandler.cs
+  ────────────────────────────────────────
+  Step: 1b
+  File: TiskReportApi\Modules\Reports\ReportsController.cs:649
+  What: New endpoint [HttpGet] [Route("ToDoDetailBulk/data")] — one-liner calling ResolveResponse
+
+  ---
+  WPF UI (Proconom) — 5 changes
+
+  ┌──────┬────────────────────────────────────────────────────┬───────────────────────────────────────────────────────────────────────────────────┐
+  │ Step │                        File                        │                                       What                                        │
+  ├──────┼────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────┤
+  │      │                                                    │ Bump grid storage key from "ToDo_DgToDoColumns_02_10_2025" to                     │
+  │ 2a   │ eConoM\BehaviorClass\IsolatedStorageBC.cs:1527     │ "ToDo_DgToDoColumns_18_05_2026" — forces clean grid reset for all users (needed   │
+  │      │                                                    │ because new column changes serialized layout)                                     │
+  ├──────┼────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────┤
+  │      │                                                    │ Add SelectionMode="Extended" on dgToDos (line 93). Add GridCheckBoxSelectorColumn │
+  │ 2b   │ eConoM\Moduly\Todo\TodoList\Views\ToDoList.xaml    │  as first column inside <sf:SfDataGrid.Columns> (line 104). Remove IsEnabled      │
+  │      │                                                    │ binding on cbPrintOptions (line 402) — will be managed in code-behind             │
+  ├──────┼────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────┤
+  │      │                                                    │ SelectionChanged (line 579): change btnPrintToDo.IsEnabled from == 1 to >= 1, add │
+  │ 2c   │ eConoM\Moduly\Todo\TodoList\Views\ToDoList.xaml.cs │  cbPrintOptions.IsEnabled = Count == 1. btnPrintToDo_Click (line 661): add branch │
+  │      │                                                    │  — if Count == 1 → existing untouched flow, if Count > 1 → call new bulk method   │
+  │      │                                                    │ with List<int> of IDs, SaveFileDialog with filename "ToDo-Export.pdf"             │
+  ├──────┼────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────┤
+  │ 2d   │ eConoM\Servers\ReportServer\IReportServer.cs:63    │ Add interface method Task<FileResponse> GetToDoDetailBulkReport(List<int>         │
+  │      │                                                    │ toDoIds)                                                                          │
+  ├──────┼────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────┤
+  │ 2e   │ eConoM\Servers\ReportServer\ReportServer.cs:320    │ Implement GetToDoDetailBulkReport — calls NSwag-generated client method for the   │
+  │      │                                                    │ new bulk endpoint                                                                 │
+  └──────┴────────────────────────────────────────────────────┴───────────────────────────────────────────────────────────────────────────────────┘
+
+  ---
+  Not touched
+
+  - NSwag clients (TiskApiClient.cs) — auto-generated, regenerate after API deploy
+  - Web UI — will consume the same ToDoDetailBulk/data endpoint later
+  - No DB changes — no migrations, no new tables/columns
+
+  ---
+  Risks mitigated
+
+  ┌───────────────────────────────────────────────┬──────────────────────────────────────────────────────┐
+  │                     Risk                      │                      Mitigation                      │
+  ├───────────────────────────────────────────────┼──────────────────────────────────────────────────────┤
+  │ Old grid layouts break on new checkbox column │ Storage key bump forces clean reset                  │
+  ├───────────────────────────────────────────────┼──────────────────────────────────────────────────────┤
+  │ TiskToDoDetail uses .SelectedItem (singular)  │ Only reached in Count == 1 branch — untouched        │
+  ├───────────────────────────────────────────────┼──────────────────────────────────────────────────────┤
+  │ Attachments dropdown enabled for multi-select │ cbPrintOptions.IsEnabled set to false when Count > 1 │
+  ├───────────────────────────────────────────────┼──────────────────────────────────────────────────────┤
+  │ Existing single-print behavior changes        │ Completely isolated — new code only in else branch   │
+  └───────────────────────────────────────────────┴──────────────────────────────────────────────────────┘
+
+
+------------------------------------------------------------------------------------------------------------------------------------------------
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28318/
 User Story 28318: api - Administrator - práva na dokumenty - ve skupině "všichni" zobrazovat jen uživatele s právem na vybranou stavbu
 
