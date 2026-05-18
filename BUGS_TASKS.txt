@@ -2,6 +2,51 @@
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28318/
 User Story 28318: api - Administrator - práva na dokumenty - ve skupině "všichni" zobrazovat jen uživatele s právem na vybranou stavbu
 
+PR ---> null parametr jsem pushnul , schvaleneZbvOnly on ManagerStaveb_GetCenyStavbyAsync může chybět!!!!!!!!!!!!!!!!!!!
+Summary — 2026-05-18
+
+  Task 28318: DMS User Filtering by Construction Access
+
+  PR review feedback from Monika Moravcová — two points:
+
+  1. Autocomplete — she cancelled it, API PR must be completed first (no action needed from you)
+  2. "Why have ExcludeDeniedUsers parameter at all?" — she suggested hardcoding the filtering
+
+  Analysis performed
+
+  Searched all consumers of DocumentGroup_GetDocumentGroupsByConstruction across all repos:
+
+  ┌──────────┬───────────────────────────────────────────────┐
+  │ Consumer │                     Usage                     │
+  ├──────────┼───────────────────────────────────────────────┤
+  │ WPF UI   │ 1 call — always passed true                   │
+  ├──────────┼───────────────────────────────────────────────┤
+  │ Web UI   │ 2 calls — no param (got false / old behavior) │
+  ├──────────┼───────────────────────────────────────────────┤
+  │ AdForge  │ Generated client only, never actually called  │
+  └──────────┴───────────────────────────────────────────────┘
+
+  Conclusion: No consumer has a legitimate reason to see denied users. The parameter just creates risk of someone forgetting to pass true.
+
+  Changes applied
+
+  API repo (develop_28318_ksk_DocRightsGRoups):
+  - GetDocumentGroupsByConstructionHandler.cs — removed if (request.ExcludeDeniedUsers) condition, filtering now always runs. Removed
+  ExcludeDeniedUsers property from request model.
+
+  WPF repo (develop_28318_ksk_DocRightsGroups):
+  - IGroupManagerServer.cs:17 — removed bool excludeDeniedUsers parameter
+  - GroupManagerServer.cs:18-20 — removed parameter, simplified API call
+  - GroupManagerContext.cs:344 — removed excludeDeniedUsers: true argument
+  - NSwag client regenerated — confirmed excludeDeniedUsers is gone
+
+  Unrelated issue encountered
+
+  NSwag regeneration pulled in someone else's API change (schvaleneZbvOnly on ManagerStaveb_GetCenyStavbyAsync), breaking the build at
+  RozpocetServer.cs:1257. Applied temporary null fix locally. Must revert before pushing.
+
+------------------------
+
 Summary of Fix — Task 28318
 
   Problem: In the "Nastavení skupin" window, when adding a new user to a group (e.g. "Skupina - Skupina"), the user picker popup ("Uživatel")
