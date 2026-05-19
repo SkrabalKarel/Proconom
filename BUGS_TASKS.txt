@@ -275,6 +275,44 @@ Bug 29503 — Summary of Yesterday's Partial Fix
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29508/
 Bug 29508: Desktop - ESD - deník objektu - po překliknutí dne se vrátím na hlavní esd
 
+Summary — Bug #29508 Fix
+
+  FILE: Proconom\eConoM\ProconomSections\StavDenikSectionControl.xaml.cs
+  CLASS: StavDenikSectionControl
+
+  Bug: In ESD diary, when changing the date (< / > arrows), the tree selection jumped to the root (hlavní deník stavby) instead of staying on the
+  selected object diary. Data also showed stale content from the previous date.
+
+  Root cause: NactiStrom() always selected the root node, AND data reloading relied entirely on fragile event handler chains
+  (tvDenik_SelectedItemChanged → Refresh()) with async race conditions.
+
+  ---
+  4 changes made (diff against prerelease):
+
+  1. _hlavniForm_DateSelected — Save selected item before rebuild (lines 462-469)
+  Captures reloadObjectId and reloadPopisSO from the currently selected tree item BEFORE the tree is cleared. Root → null (loads hlavní deník), child
+   → child's Kod (loads object data).
+
+  2. _hlavniForm_DateSelected — Suppress spurious SelectedItemChanged (lines 472-474)
+  Wraps NactiStrom() with isSelectionBeingChanged = true/false. Prevents tvDenik.Items.Clear() from triggering tvDenik_SelectedItemChanged which
+  would start a competing async Refresh() with wrong data.
+
+  3. _hlavniForm_DateSelected — Explicit data reload (line 515)
+  await PrenactiData(reloadObjectId, reloadPopisSO) — deterministic data load for the new date, independent of event handler timing. No more reliance
+   on async event chains.
+
+  4. NactiStrom — Handle root re-selection (lines 1762-1766)
+  Changed if (ObjectToSelect == null) to if (ObjectToSelect == null || (!rozpocet && ObjectToSelect.Value == DataStavba.Id)). When the root itself
+  was selected, it gets re-selected and ObjectToSelect is cleared. Previously root was never re-selected because ObjectToSelect was set to root's
+  Kod.
+
+  5. PrenactiData — Move DataContext null earlier (line 692)
+  Moved this.DataContext = null from after the first await to before it. Prevents 2-3 seconds of stale data display during API call delay. Also
+  avoids breaking the _hlavniForm_DateSelected entry guard on rapid date changes.
+
+---------------------------------------
+
+
 Summary — Bug #29508
 
   Bug: V ESD deníku, při překliknutí dne (šipkou < / >), se výběr v levém stromě vždy přeskočil na hlavní deník stavby, místo aby zůstal na vybraném
