@@ -20,6 +20,88 @@ https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28057/?wor
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28057/?workitem=29612
 Feature 28057: todo - hromadný export todo do pdf
 
+Summary — Task 28057: Bulk ToDo PDF Export (API only)
+
+  What was implemented
+
+  A new API endpoint that accepts a list of ToDo IDs and returns a single merged PDF containing all selected ToDo detail reports
+  (without DMS attachments).
+
+  Files changed
+
+  ┌─────┬──────────────────────────────────────────────────────────────────────────────────────┬──────┬─────────────────────────┐
+  │  #  │                                         File                                         │ Type │         Change          │
+  ├─────┼──────────────────────────────────────────────────────────────────────────────────────┼──────┼─────────────────────────┤
+  │ 1   │ Test_Nove_API\TiskReportApi\Modules\Reports\Handlers\GetToDoDetailBulkDataHandler.cs │ NEW  │ Handler + request class │
+  ├─────┼──────────────────────────────────────────────────────────────────────────────────────┼──────┼─────────────────────────┤
+  │ 2   │ Test_Nove_API\TiskReportApi\Modules\Reports\ReportsController.cs:651-654             │ EDIT │ Added endpoint route    │
+  └─────┴──────────────────────────────────────────────────────────────────────────────────────┴──────┴─────────────────────────┘
+
+  Endpoint
+
+  - URL: POST api/Reports/ToDoDetailBulk/data
+  - Body: { "toDoIds": [1863, 1862, 695] }
+  - Returns: Single merged PDF (ToDo-Export.pdf, application/octet-stream)
+
+  How it works
+
+  1. Receives List<int> ToDoIds via [FromBody]
+  2. Loops over each ID, creates ReportToDoDetail_PDF with TiskZDokumentu = false (no DMS docs)
+  3. Merges individual PDFs via PdfDocumentBase.Merge() (same pattern as GetRekapitulaceCerpaniPolozekHandler)
+  4. Returns single merged PDF stream
+
+  What's untouched
+
+  - Existing GET api/Reports/ToDoDetail/data — zero changes
+  - ReportToDoDetail_PDF.cs — zero changes
+  - PdfReportHelper.cs — zero changes
+  - GetToDoDetailDataHandler.cs — zero changes
+  - No DB changes, no permission changes
+
+  Tested via curl
+
+  - Port 5014 (TiskReportApi, HTTP) — confirmed 200 OK with valid merged PDFs
+  - Tested with multiple real ToDo IDs (1863, 1862, 695, 1861)
+
+  Remaining (WPF UI — deferred)
+
+  - NSwag regeneration
+  - IReportServer.cs / ReportServer.cs — bulk method
+  - IsolatedStorageBC.cs — bump grid storage key
+  - ToDoList.xaml — SelectionMode="Extended" + checkbox column
+  - ToDoList.xaml.cs — print button enabled when ≥1 selected, attachments dropdown disabled when >1, branching logic (single =
+  existing, bulk = new endpoint)
+
+--------------- curl testing ---------------------------------------
+
+# Step 1: Login
+  PREAUTH=$(curl -sk -X POST https://localhost:44301/api/anonym/auth/authenticate/master \
+    -H "Content-Type: application/json" \
+    -d '{"userName":"skrabal@proconom.cz","password":"YOUR_PASSWORD","idp":1}' | jq -r '.authToken')
+  echo "PREAUTH=$PREAUTH"
+
+  # Step 2: Database token
+  TOKEN=$(curl -sk -X POST https://localhost:44301/api/auth/databasetoken \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $PREAUTH" \
+    -d '{"database":"Data_Develop"}' | jq -r '.uzivatel.token')
+  echo "TOKEN=$TOKEN"
+
+  # Step 3: Bulk ToDo PDF export
+  curl -v -X POST "http://localhost:5014/api/Reports/ToDoDetailBulk/data" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN" \
+    -d '{"toDoIds":[1863,1862,695]}' \
+    -o ToDo-Export.pdf
+
+  Notes:
+  - Auth goes to https://localhost:44301 (TestApi, HTTPS)
+  - Bulk endpoint goes to http://localhost:5014 (TiskReportApi, HTTP)
+  - Replace YOUR_PASSWORD, Data_Develop with real password and database
+  - Replace ToDo IDs with valid ones from your DB
+
+-----------------------------------------------------------------------------
+
 "continue task 28057 bulk todo PDF export"
 
 Implementation Plan — Feature 28057: Bulk ToDo PDF Export
