@@ -1,4 +1,20 @@
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29640
+Bug 29640: desktop - wf - chybí posuvníky na jednotlivé procesy
+
+Summary — BUG 29640 fix
+
+  Two changes in WorkFlowReporting.xaml / .xaml.cs:
+
+  1. XAML — line 1265: Changed ScrollViewer.HorizontalScrollBarVisibility from "Auto" to "Disabled" on the outer lvHigh ListView.
+  This stops the outer ScrollViewer from giving infinite horizontal space to cards, forcing each process card to fit the viewport
+  width. The inner per-process ListView (already set to "Auto") now correctly shows a horizontal scrollbar when steps overflow.
+
+  2. Code-behind — line 481: Added a ScrollBar parent check in UlohyListView_PreviewMouseLeftButtonDown. The handler was setting
+  e.Handled = true for any click that didn't hit a ListViewItem — including clicks on the scrollbar. The new check lets scrollbar
+  clicks pass through.
+
+-----------------------------------------------------------------------------------------------------------------------------------------------
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28057/?workitem=28057
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28057/?workitem=29612
