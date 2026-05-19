@@ -380,6 +380,49 @@ přidaná validace a pár kočičin na spuštění widgetu canban
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29464/
 desktop - docházka - při úpravě stávajícího záznamu musím znovu vyplnit projekt
 
+Summary — Bug 29464 (tester feedback: project must show immediately)
+
+  Problem
+
+  When editing an existing dochazka record, the PROJEKT field was empty for ~1 second, then the project name appeared. The delay was caused by CiselnikButtonBox making an async API call (NactiPopisDB
+  → VratPopisZCiselnikuAsync) to resolve the project name every time the window opened.
+
+  Root Cause
+
+  Two code paths in CiselnikButtonBox triggered NactiPopisDB during window initialization:
+  1. OnKod_CiselnikPropertyChanged — when Kod_Ciselnik binding evaluated
+  2. UserControl_DataContextChanged — when DataContext was set (catch-all fallback)
+
+  Both are async API calls, causing a visible delay before the text appeared.
+
+  Solution (WPF-only, 2 files)
+
+  FILE: Proconom\eConoM\Ciselniky\CiselnikButtonBox.xaml.cs
+  - Added public bool SuppressPopisLoad { get; set; } (defaults to false, no impact on existing usage)
+  - Guard in OnKod_CiselnikPropertyChanged (~line 83): skip NactiPopisDB when flag is true
+  - Guard in UserControl_DataContextChanged catch-all (~line 858): same
+
+  FILE: Proconom\eConoM\Stavby\Detaily\DochazkaEditControl.xaml.cs
+  - DochazkaRecordDCCWithProjects constructor (~line 190): KodStavba set immediately, LoadStavby removed (unused Stavby property, no XAML binding)
+  - Edit constructor (~line 475-484): before DataContext assignment, sets SuppressPopisLoad = true, pre-sets Kod_Ciselnik and CiselnikPopis using data already available (data.KodStavba,
+  data.NazevStavba), then sets DataContext, then resets flag to false
+
+  Flow After Fix
+
+  1. Window opens → Kod_Ciselnik and text pre-set directly → project name visible instantly
+  2. DataContext assigned → both NactiPopisDB code paths blocked by flag → no API call
+  3. Binding evaluates → Kod_Ciselnik already has same value → no callback fires
+  4. Flag reset → CiselnikButtonBox works normally for any subsequent user interaction (changing project, etc.)
+
+  What Was NOT Changed
+
+  - API (GetUserResourceReportHandler.cs) — reverted, no change
+  - XAML (DochazkaEditControl.xaml) — no change, Kod_Ciselnik binding stays
+  - New record constructor DochazkaEditControl(int userId) — no change, no project to pre-set
+  - All other CiselnikButtonBox instances across the app — SuppressPopisLoad defaults to false, all existing behavior preserved
+
+-----------------------------
+
 Bug 29464 — Docházka: při úpravě záznamu chybí projekt
 
   Problém: Při editaci existujícího záznamu docházky přes tužku se v okně nezobrazoval přiřazený projekt, i když na záznamu byl uložený.
