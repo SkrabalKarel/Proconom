@@ -653,6 +653,35 @@ git fetch origin
 git reset --hard origin/develop
 
 
+GIT-Refresh develop,prerelease
+-----------------------------------
+ # --- PROCONOM ---
+  # 1. Fetch + preview
+  cd /c/Users/karel.skrabal/source/repos/Proconom && git fetch origin develop && git log ..origin/develop --oneline && git diff ...origin/develop --stat
+  # 2. Merge develop
+  git merge origin/develop
+  # 3. Fetch + preview prerelease
+  git fetch origin prerelease && git log ..origin/prerelease --oneline && git diff ...origin/prerelease --stat
+  # 4. Merge prerelease
+  git merge origin/prerelease
+
+  # If conflicts → 
+ git merge --abort
+#---------------------------------------------------------------------------------
+  # --- TEST_NOVE_API ---
+  # 1. Fetch + preview
+  cd /c/Users/karel.skrabal/source/repos/Test_Nove_API && git fetch origin develop && git log ..origin/develop --oneline && git diff ...origin/develop --stat
+  # 2. Merge develop
+  git merge origin/develop
+  # 3. Fetch + preview prerelease
+  git fetch origin prerelease && git log ..origin/prerelease --oneline && git diff ...origin/prerelease --stat
+  # 4. Merge prerelease
+  git merge origin/prerelease
+
+  # If conflicts → 
+ git merge --abort
+
+
 GIT - output log
 ----------------
 outputs log for the actual day and yesterday
