@@ -655,6 +655,12 @@ git reset --hard origin/develop
 
 GIT-Refresh develop,prerelease
 -----------------------------------
+Uloženo do sh scriptů !!!!!!!!!!!!!!!!!!!!!
+C:\Users\karel.skrabal\Documents\Scripts\sync-proconom.sh
+C:\Users\karel.skrabal\Documents\Scripts\sync-api.sh
+takto je to uloženo claude paměti !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+"where are my git sync scripts?"
+
  # --- PROCONOM ---
   # 1. Fetch + preview
   cd /c/Users/karel.skrabal/source/repos/Proconom && git fetch origin develop && git log ..origin/develop --oneline && git diff ...origin/develop --stat
