@@ -2,6 +2,9 @@
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29668/
 Bug 29668: dekstop - WF/Todo - přidávání dokumentů do procesu - nemizí pluska po přidání dokumentu
 
+testování na stavbě = 036/24
+WF#2136, #2137
+
 Great, so all three parts are working:
 
   1. Plus hides when document is added (click "+")
