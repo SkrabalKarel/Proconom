@@ -1,4 +1,34 @@
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29668/
+Bug 29668: dekstop - WF/Todo - přidávání dokumentů do procesu - nemizí pluska po přidání dokumentu
+
+Great, so all three parts are working:
+
+  1. Plus hides when document is added (click "+")
+  2. Plus reappears when document is removed (click "-"), even when the folder is already selected
+  3. Uložit button stays enabled correctly
+
+  The final changes were across 3 files:
+
+  ┌────────────────────────────────────────────────┬──────────────────────────────────────────────────────────────────────────────────────────────┐
+  │                      File                      │                                            Change                                            │
+  ├────────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ eConoM\Dokumenty\DataContextClasses\DFileDC.cs │ Added IsVybrano property                                                                     │
+  ├────────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ eConoM\WorkFlow\WinVyberSlozku.xaml            │ Added DataTrigger for IsVybrano=True → Collapsed                                             │
+  ├────────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ eConoM\WorkFlow\WinVyberSlozku.xaml.cs         │ Set IsVybrano in btnAdd_Click, btnRemove_Click (+ cross-instance sync via FolderContent),    │
+  │                                                │ and Objekt_SelectedSlozky                                                                    │
+  └────────────────────────────────────────────────┴──────────────────────────────────────────────────────────────────────────────────────────────┘
+
+
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29640
 Bug 29640: desktop - wf - chybí posuvníky na jednotlivé procesy
 
