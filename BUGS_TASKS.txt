@@ -1,4 +1,148 @@
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28110
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29654/
+Feature 28110: ESD: našeptávač u mechanizace a pracovníka [CS-271]
+
+
+
+Complete Testing Guide — ESD Whispering Endpoints
+
+  SQL — Find StavbaId with data
+
+  SELECT TOP 10
+      s.xID AS StavbaId,
+      s.znacka,
+      s.nazev,
+      (SELECT COUNT(*) FROM [Prerelease-2026-5-12-8-54].dbo.s_sd_lide l
+       INNER JOIN [Prerelease-2026-5-12-8-54].dbo.s_stav_denik sd ON l.k_stav_denik = sd.xID
+       WHERE sd.k_stavba = s.xID AND l.typ IS NOT NULL AND l.typ != '') AS WorkerCount,
+      (SELECT COUNT(DISTINCT l.funkce) FROM [Prerelease-2026-5-12-8-54].dbo.s_sd_lide l
+       INNER JOIN [Prerelease-2026-5-12-8-54].dbo.s_stav_denik sd ON l.k_stav_denik = sd.xID
+       WHERE sd.k_stavba = s.xID AND l.funkce IS NOT NULL AND l.funkce != '') AS FunctionCount,
+      (SELECT COUNT(*) FROM [Prerelease-2026-5-12-8-54].dbo.s_sd_stroje st
+       INNER JOIN [Prerelease-2026-5-12-8-54].dbo.s_stav_denik sd ON st.k_stav_denik = sd.xID
+       WHERE sd.k_stavba = s.xID AND st.typ IS NOT NULL AND st.typ != '') AS MachineCount
+  FROM [Prerelease-2026-5-12-8-54].dbo.s_stavby s
+  WHERE EXISTS (
+      SELECT 1 FROM [Prerelease-2026-5-12-8-54].dbo.s_stav_denik sd
+      WHERE sd.k_stavba = s.xID
+  )
+  ORDER BY WorkerCount DESC
+
+  Curl — Complete flow (Git Bash, 127.0.0.1)
+
+  # ============================================
+  # STEP 1: Login
+  # ============================================
+  PREAUTH=$(curl -sk -X POST https://127.0.0.1:44301/api/anonym/auth/authenticate/master \
+    -H "Content-Type: application/json" \
+    -d '{"userName":"skrabal@proconom.cz","password":"YOUR_PASSWORD","idp":1}' | jq -r '.authToken')
+
+  echo "PREAUTH: $PREAUTH"
+
+  # ============================================
+  # STEP 2: Database token (prerelease)
+  # ============================================
+  TOKEN=$(curl -sk -X POST https://127.0.0.1:44301/api/auth/databasetoken \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $PREAUTH" \
+    -d '{"database":"Prerelease-2026-5-12-8-54"}' | jq -r '.uzivatel.token')
+
+  echo "TOKEN: $TOKEN"
+
+  # ============================================
+  # STEP 3: Baseline — existing workerFunctions
+  # ============================================
+  curl -sk -X GET "https://127.0.0.1:44301/api/stavebnidenik/stavby/1/workerFunctions" \
+    -H "Authorization: Bearer $TOKEN" | jq .
+
+  # ============================================
+  # STEP 4: NEW — workerNames
+  # ============================================
+  curl -sk -X GET "https://127.0.0.1:44301/api/stavebnidenik/stavby/1/workerNames" \
+    -H "Authorization: Bearer $TOKEN" | jq .
+
+  # ============================================
+  # STEP 5: NEW — machineNames
+  # ============================================
+  curl -sk -X GET "https://127.0.0.1:44301/api/stavebnidenik/stavby/1/machineNames" \
+    -H "Authorization: Bearer $TOKEN" | jq .
+
+  # ============================================
+  # STEP 6: With optional ObjektID filter
+  # ============================================
+  curl -sk -X GET "https://127.0.0.1:44301/api/stavebnidenik/stavby/1/workerNames?ObjektID=239" \
+    -H "Authorization: Bearer $TOKEN" | jq .
+
+  curl -sk -X GET "https://127.0.0.1:44301/api/stavebnidenik/stavby/1/machineNames?ObjektID=239" \
+    -H "Authorization: Bearer $TOKEN" | jq .
+
+  # ============================================
+  # STEP 7: Error cases
+  # ============================================
+  # Invalid StavbaId → expect 400
+  curl -sk -X GET "https://127.0.0.1:44301/api/stavebnidenik/stavby/999999/workerNames" \
+    -H "Authorization: Bearer $TOKEN" | jq .
+
+  # No auth → expect 401
+  curl -sk -X GET "https://127.0.0.1:44301/api/stavebnidenik/stavby/1/workerNames" | jq .
+
+--------------------------------
+
+ Session Summary — Feature 28110: ESD Whispering for Workers & Machines
+
+  Task
+
+  Add autocomplete/whispering to "Jméno a Příjmení" and "Stroje" fields in the ESD daily record, same as "Funkce" already has.
+
+  What was done (API repo only)
+
+  ┌───────────────────────────────────────────────────────────────────────────────────────────────┬───────────────────────────────────────────────┐
+  │                                             File                                              │                    Action                     │
+  ├───────────────────────────────────────────────────────────────────────────────────────────────┼───────────────────────────────────────────────┤
+  │ Test_Nove_API\TestApi\v1\Modules\Stavebnidenik\Handlers\GetConstructionWorkerNamesHandler.cs  │ NEW — queries distinct SSdLide.Typ (worker    │
+  │                                                                                               │ names) per construction                       │
+  ├───────────────────────────────────────────────────────────────────────────────────────────────┼───────────────────────────────────────────────┤
+  │ Test_Nove_API\TestApi\v1\Modules\Stavebnidenik\Handlers\GetConstructionMachineNamesHandler.cs │ NEW — queries distinct SSdStroje.Typ (machine │
+  │                                                                                               │  names) per construction                      │
+  ├───────────────────────────────────────────────────────────────────────────────────────────────┼───────────────────────────────────────────────┤
+  │ Test_Nove_API\TestApi\v1\Modules\Stavebnidenik\StavebniDenikController.cs                     │ EDITED — added 2 endpoints after              │
+  │                                                                                               │ workerFunctions                               │
+  └───────────────────────────────────────────────────────────────────────────────────────────────┴───────────────────────────────────────────────┘
+
+  New endpoints
+
+  ┌────────┬────────────────────────────────────────────────────────────┬─────────────────────────────────┐
+  │ Method │                           Route                            │             Returns             │
+  ├────────┼────────────────────────────────────────────────────────────┼─────────────────────────────────┤
+  │ GET    │ api/stavebnidenik/stavby/{StavbaId}/workerNames?ObjektID=  │ { "names": ["Jan Novák", ...] } │
+  ├────────┼────────────────────────────────────────────────────────────┼─────────────────────────────────┤
+  │ GET    │ api/stavebnidenik/stavby/{StavbaId}/machineNames?ObjektID= │ { "names": ["Bagr CAT", ...] }  │
+  └────────┴────────────────────────────────────────────────────────────┴─────────────────────────────────┘
+
+  Pattern followed
+
+  Exact copy of existing GetConstructionWorkerFunctionsHandler — same auth, same access check, same request shape (StavbaId required, ObjektId
+  optional), same response shape.
+
+  Backward compatibility
+
+  - No existing endpoints modified
+  - No DB changes
+  - Purely additive — 2 new handlers, 2 new routes
+
+  Tested & verified
+
+  - All 3 endpoints return correct data for StavbaId=1 on Prerelease-2026-5-12-8-54
+  - workerFunctions — 6 functions (unchanged)
+  - workerNames — 8 names (new)
+  - machineNames — 3 names (new)
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29668/
 Bug 29668: dekstop - WF/Todo - přidávání dokumentů do procesu - nemizí pluska po přidání dokumentu
 
