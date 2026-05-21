@@ -5,6 +5,37 @@ Bug 29668: dekstop - WF/Todo - přidávání dokumentů do procesu - nemizí plu
 testování na stavbě = 036/24
 WF#2136, #2137
 
+Summary — Bug 29668
+
+  Bug: Desktop - WF/Todo - přidávání dokumentů do procesu - nemizí pluska po přidání dokumentu
+
+  What was done (across 2 sessions)
+
+  Session 1 — Core fix (already committed as 6ac8fc3bd):
+
+  3 files changed to make the + sign hide/show correctly when adding/removing documents:
+
+  ┌────────────────────────────────────────────────┬─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │                      File                      │                                                       Change                                                        │
+  ├────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ eConoM\Dokumenty\DataContextClasses\DFileDC.cs │ Added IsVybrano property                                                                                            │
+  ├────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ eConoM\WorkFlow\WinVyberSlozku.xaml            │ Added DataTrigger for IsVybrano=True → Collapsed                                                                    │
+  ├────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ eConoM\WorkFlow\WinVyberSlozku.xaml.cs         │ Set IsVybrano in btnAdd_Click, btnRemove_Click (+ cross-instance sync via FolderContent), and Objekt_SelectedSlozky │
+  └────────────────────────────────────────────────┴─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+  Session 2 — Alignment fix (just applied, not yet committed):
+
+  ┌─────────────────────────────────────────┬───────────────────────────────────────────────────────────────────────────┐
+  │                  File                   │                                  Change                                   │
+  ├─────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────┤
+  │ eConoM\WorkFlow\WinVyberSlozku.xaml:122 │ Changed Visibility from Collapsed to Hidden on the IsVybrano=True trigger │
+  └─────────────────────────────────────────┴───────────────────────────────────────────────────────────────────────────┘
+
+  Why: Collapsed removes the button from layout entirely, causing the icon + filename to shift left on added items. Hidden keeps the button's space reserved but invisible, so
+   all rows stay vertically aligned.
+
 Great, so all three parts are working:
 
   1. Plus hides when document is added (click "+")
