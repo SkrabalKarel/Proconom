@@ -3,7 +3,8 @@ https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28110
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29654/
 Feature 28110: ESD: našeptávač u mechanizace a pracovníka [CS-271]
 
-
+obnovit z paměti :
+"Continue feature 28110 — ESD whispering for workers and machines, WPF side"
 
 Complete Testing Guide — ESD Whispering Endpoints
 
