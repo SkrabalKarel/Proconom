@@ -1,4 +1,27 @@
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29698/
+Bug 29698: Desktop - měření - Hromadní záznam stavby/objektu - checkbox "Zahrnout pouze uzamčené záznamy" nefunguje
+
+Summary — BUG 29698
+
+  Bug: "Zahrnout pouze uzamčené záznamy" checkbox in Hromadný záznam stavby/objektu print had no effect — all measured items were printed regardless.
+
+  Root cause: The initial LINQ query selecting položky to print (line 103) did not filter by lock status. The PouzeZamknute flag was only used deeper in the stored procedure to filter čerpání rows within
+  each položka — but the položka itself was always included, producing empty pages for unlocked items.
+
+  Fix: Added && (!request.PouzeZamknute || ssdPol.Uzamceno) to the where clause.
+
+  FILE: Test_Nove_API\TiskReportApi\Modules\Reports\Handlers\GetHromadnyZaznamMereniDataHandler.cs
+  CLASS: GetHromadnyZaznamMereniReportHandler
+  METHOD: Handle
+  LINE: 104
+
+  One line added, no other files changed.
+
+
+--------------------------------------------------------------------------------------------------------------------------------------------------
+
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28110
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29654/
 Feature 28110: ESD: našeptávač u mechanizace a pracovníka [CS-271]
