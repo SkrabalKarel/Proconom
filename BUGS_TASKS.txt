@@ -5,6 +5,73 @@ Bug 29688: Desktop - měření - gridové zobrazení - rozkliknutí SD v gridov�
 
 revert the UpdaterServer temporary changes
 
+
+
+● The Bug
+
+  FILE: Proconom\eConoM\ProconomSections\MereniSectionSeznam.xaml.cs
+  METHOD: LoadDataPolozka
+  LINES: 393 vs 395
+
+  391:  foreach (MereniUzelDC polozka in polozky)
+  392:  {
+  393:      bool uzamceno = polozka.Mereni.Any(p => p.Uzamceno);  // ← uses Mereni HERE
+  394:
+  395:      if (polozka.Mereni == null)   // ← checks null AFTER — too late
+  396:      {
+  397:          return;
+  398:      }
+
+  The code checks if polozka.Mereni is null on line 395, but it already accesses it on line 393 with .Any(). If any položka under SD "zemní práce" has Mereni == null, it crashes on line 393
+  with a NullReferenceException before the null check ever runs.
+
+  Why you don't see the exception: The call chain is:
+  1. ExpandCollapse (line 634, async Task)
+  2. → calls LoadDataPolozka (line 660)
+  3. → NullReferenceException thrown on line 393
+
+  Because ExpandCollapse is async Task and is likely called without await or via a fire-and-forget event handler, the exception gets swallowed by the Task — it never bubbles up to the UI, no
+  error dialog appears, the app just silently fails and the grid stops responding (looks like a crash/freeze).
+
+  Proposed Fix
+
+  Move the null check before the .Any() call, and change return to continue (so one bad položka doesn't skip all remaining ones):
+
+  foreach (MereniUzelDC polozka in polozky)
+  {
+      if (polozka.Mereni == null)
+      {
+          continue;
+      }
+
+      bool uzamceno = polozka.Mereni.Any(p => p.Uzamceno);
+      // ... rest stays the same
+
+  CHANGED:
+  - Null check moved from line 395 to before line 393
+  - return → continue (skip this one položka, don't abort the entire loop)
+
+  INTENTIONALLY UNCHANGED:
+  - Everything else in the method stays as-is — the .Any() call, the data mapping, the ZBV logic — none of it is affected
+
+  How to Test
+
+  Since the exception is swallowed, you can't rely on the debugger catching it. Two approaches:
+
+  Approach 1 — Add a temporary breakpoint
+
+  1. Put a breakpoint on the new continue line
+  2. Open Měření grid view, expand stavba Azir / školení 11 → any SO → SD "zemní práce"
+  3. If the breakpoint hits → you confirmed Mereni was null, and the fix prevented the crash
+  4. The grid should now load (possibly with some položky missing — the ones with null Mereni)
+
+  Approach 2 — Check the data
+
+  Let me query the DB to see if any položka under "zemní práce" actually has null Mereni data. This would confirm the root cause.
+
+  Want me to apply the fix and also check the database for the "zemní práce" SD data?
+
+
 --------------------------------------------------------------------------------------------------------------------------------------------
 
 
