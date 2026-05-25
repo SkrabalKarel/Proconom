@@ -1,4 +1,86 @@
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27920
+Feature 27920: ToDo: Hromadné označení štítkem [CS-242]
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29651
+User Story 29651: Api - ToDo: Hromadné označení štítkem
+
+
+Summary — Bulk ToDo Update Feature (API)
+
+  New endpoint
+
+  PUT /api/todolist/ukoly/bulk
+
+  Accepts a list of ToDo IDs and optionally: new Stav, new Deadline, tags to add, tags to remove. Only applies changes that are actually different per ToDo. Locked ToDos are
+  skipped and reported in failedTodos. History is logged per field per ToDo. Notification email sent per ToDo to affected users.
+
+  ---
+  Files created (6)
+
+  ┌─────┬────────────────────────────────────────────────────────────────────────────────┬───────────────────────────────────────────────────────────────┐
+  │  #  │                                      File                                      │                            Purpose                            │
+  ├─────┼────────────────────────────────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────┤
+  │ 1   │ TestApi\v1\Modules\ToDoList\Models\BulkUpdateToDosRequest.cs                   │ Request + Response DTOs                                       │
+  ├─────┼────────────────────────────────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────┤
+  │ 2   │ TestApi\v1\Modules\ToDoList\Handlers\BulkUpdateToDosHandler.cs                 │ Handler — bulk update logic, history, notifications           │
+  ├─────┼────────────────────────────────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────┤
+  │ 3   │ Commons\Services\EmailServices\Models\ToDo\ToDoBulkUpdatedNotificationModel.cs │ Email notification model (stav, deadline, tags added/removed) │
+  ├─────┼────────────────────────────────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────┤
+  │ 4   │ Commons\Services\EmailServices\Views\ToDo\ToDoBulkUpdatedEmail.cshtml          │ Razor email template                                          │
+  └─────┴────────────────────────────────────────────────────────────────────────────────┴───────────────────────────────────────────────────────────────┘
+
+  Files edited (3)
+
+  ┌─────┬──────────────────────────────────────────────────────────────────────────┬─────────────────────────────────────────────────────┐
+  │  #  │                                   File                                   │                       Change                        │
+  ├─────┼──────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────┤
+  │ 5   │ TestApi\v1\Modules\ToDoList\ToDoListController.cs:273                    │ Added BulkUpdateToDos action                        │
+  ├─────┼──────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────┤
+  │ 6   │ TestApi\v1\Modules\ToDoList\Factories\ToDoListNotificationFactory.cs:120 │ Added ToDoBulkUpdatedEmailNotificationFactory class │
+  ├─────┼──────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────┤
+  │ 7   │ TestApi\Startup.cs:1686                                                  │ DI registration for the new factory                 │
+  └─────┴──────────────────────────────────────────────────────────────────────────┴─────────────────────────────────────────────────────┘
+
+  ---
+  Before pushing — must revert test recipient
+
+  FILE: TestApi\v1\Modules\ToDoList\Handlers\BulkUpdateToDosHandler.cs
+  Lines: ~289–295
+
+  Remove this:
+  // TODO: TEMPORARY — send only to Karel for testing. Revert to real recipients before release:
+  // List<CUzivatele> recipients = ukol.GetOdpovedne(_ctx).ToList();
+  // if (!recipients.Any(x => x.XId == ukol.KTvurce))
+  //     recipients.Add(ukol.KTvurceNavigation);
+  CUzivatele testRecipient = _ctx.CUzivatele.Include(x => x.CUzivateleNastaveni).SingleOrDefault(x => x.XId == 69);
+  List<CUzivatele> recipients = testRecipient != null ? new List<CUzivatele> { testRecipient } : new List<CUzivatele>();
+
+  Replace with:
+  List<CUzivatele> recipients = ukol.GetOdpovedne(_ctx).ToList();
+  if (!recipients.Any(x => x.XId == ukol.KTvurce))
+      recipients.Add(ukol.KTvurceNavigation);
+
+  ---
+  Decisions made
+
+  ┌───────────────┬────────────────────────────────────────────────────────────────┐
+  │     Topic     │                            Decision                            │
+  ├───────────────┼────────────────────────────────────────────────────────────────┤
+  │ Deadline      │ Only set new, null = don't change, no clearing                 │
+  ├───────────────┼────────────────────────────────────────────────────────────────┤
+  │ Notifications │ 1 email per ToDo per affected user (creator + odpovědné osoby) │
+  ├───────────────┼────────────────────────────────────────────────────────────────┤
+  │ Concurrency   │ Skip CasZnamka (same as batch delete)                          │
+  ├───────────────┼────────────────────────────────────────────────────────────────┤
+  │ Permissions   │ No creator check, only Uzamceno blocks                         │
+  ├───────────────┼────────────────────────────────────────────────────────────────┤
+  │ Tags dropdown │ Show all tags (no filtering in API)                            │
+  ├───────────────┼────────────────────────────────────────────────────────────────┤
+  │ Locked ToDos  │ Skipped, returned in failedTodos                               │
+  └───────────────┴────────────────────────────────────────────────────────────────┘
+
+
+-----------------------------------------------------------------------------------------------------------------------------------
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29688/
 Bug 29688: Desktop - měření - gridové zobrazení - rozkliknutí SD v gridovém zobrazení a proconom spadne bez hlášky
