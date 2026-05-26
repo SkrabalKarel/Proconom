@@ -3,7 +3,190 @@ https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27920
 Feature 27920: ToDo: Hromadné označení štítkem [CS-242]
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29651
 User Story 29651: Api - ToDo: Hromadné označení štítkem
+---------------------------x
 
+Bulk ToDo Update Feature — API Summary
+
+  Endpoint
+
+  PUT /api/todolist/ukoly/bulk
+
+  Accepts a JSON body with:
+  - ukolIds — list of ToDo IDs to update
+  - kStav — (optional) new state ID
+  - deadline — (optional) new deadline date
+  - stitkyPridat — (optional) list of tag IDs to add
+  - stitkyOdebrat — (optional) list of tag IDs to remove
+
+  Only applies changes that are actually different per ToDo. Returns updatedCount and failedTodos (locked ToDos are skipped with a reason).
+
+  ---
+  Files Created (4)
+
+  ┌─────┬────────────────────────────────────────────────────────────────────────────────┬───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │  #  │                                      File                                      │                                                                    Purpose                                                                    │
+  ├─────┼────────────────────────────────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ 1   │ TestApi\v1\Modules\ToDoList\Models\BulkUpdateToDosRequest.cs                   │ Request DTO (BulkUpdateToDosRequest) and Response DTO (BulkUpdateToDosResponse)                                                               │
+  ├─────┼────────────────────────────────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ 2   │ TestApi\v1\Modules\ToDoList\Handlers\BulkUpdateToDosHandler.cs                 │ Core handler — iterates ToDos, applies stav/deadline/tag changes, writes history per field, skips locked ToDos, sends email notifications to  │
+  │     │                                                                                │ responsible users + creator                                                                                                                   │
+  ├─────┼────────────────────────────────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ 3   │ Commons\Services\EmailServices\Models\ToDo\ToDoBulkUpdatedNotificationModel.cs │ Email notification model — carries all change details (stav change, deadline change, tags added/removed, origin user, link)                   │
+  ├─────┼────────────────────────────────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ 4   │ Commons\Services\EmailServices\Views\ToDo\ToDoBulkUpdatedEmail.cshtml          │ Razor email template — renders HTML email showing what changed, database name, stavba, and a "Přejít na úkol" link                            │
+  └─────┴────────────────────────────────────────────────────────────────────────────────┴───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+  Files Edited (3)
+
+  ┌─────┬──────────────────────────────────────────────────────────────────────────┬───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │  #  │                                   File                                   │                                                                  Change                                                                   │
+  ├─────┼──────────────────────────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ 5   │ TestApi\v1\Modules\ToDoList\ToDoListController.cs:273                    │ Added BulkUpdateToDos action — [HttpPut("ukoly/bulk")] routing to MediatR handler                                                         │
+  ├─────┼──────────────────────────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ 6   │ TestApi\v1\Modules\ToDoList\Factories\ToDoListNotificationFactory.cs:120 │ Added ToDoBulkUpdatedEmailNotificationFactory class — creates EmailMessage from the notification model using Razor view + subject factory │
+  ├─────┼──────────────────────────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ 7   │ TestApi\Startup.cs:1686                                                  │ DI registration for INotificationFactory<ToDoBulkUpdatedNotificationModel, EmailMessage> → ToDoBulkUpdatedEmailNotificationFactory        │
+  └─────┴──────────────────────────────────────────────────────────────────────────┴───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+  ---
+  Handler Logic (BulkUpdateToDosHandler.Handle)
+
+  1. Validates request (non-empty IDs, deadline not in the past)
+  2. Pre-loads tag names and state names for history/notifications
+  3. Loads all requested ToDos with their tag bindings and creator navigation
+  4. Iterates each ToDo:
+    - Locked → skipped, added to failedTodos
+    - Stav → if different from current, updates + writes history record
+    - Deadline → if different, updates + writes history + schedules/reschedules deadline reminder via TodoEmailHelper
+    - Tags to add → skips already assigned, creates ToDoUkolyStitkyVazby + history
+    - Tags to remove → skips if not assigned, removes binding + history
+    - Only counts as changed if at least one field was actually modified
+  5. Saves all changes in one SaveChanges() call
+  6. Sends notifications — one email per ToDo per affected user (responsible users + creator if not already included)
+
+  Email Notification Flow
+
+  Handler.SendNotifications()
+    → Resolves UzelDTO (stavba context for the email)
+    → Gets "Přejít na úkol" link
+    → Gets recipients: GetOdpovedne() + creator
+    → For each recipient:
+        → Creates ToDoBulkUpdatedNotificationModel
+        → Factory renders Razor template → EmailMessage
+        → EmailMessage.Check() verifies user has NotifikaceMail=true + valid email
+        → EmailService.Send() → HTTP POST to Azure Email Gate Service
+            → Gate service queues → SmtpClient sends via configured SMTP
+
+  Decisions
+
+  ┌───────────────┬────────────────────────────────────────────────────────────────┐
+  │     Topic     │                            Decision                            │
+  ├───────────────┼────────────────────────────────────────────────────────────────┤
+  │ Deadline      │ Only set new value, null = don't change, no clearing           │
+  ├───────────────┼────────────────────────────────────────────────────────────────┤
+  │ Notifications │ 1 email per ToDo per affected user (creator + odpovědné osoby) │
+  ├───────────────┼────────────────────────────────────────────────────────────────┤
+  │ Concurrency   │ Skip CasZnamka (same pattern as batch delete)                  │
+  ├───────────────┼────────────────────────────────────────────────────────────────┤
+  │ Permissions   │ No creator check, only Uzamceno blocks                         │
+  ├───────────────┼────────────────────────────────────────────────────────────────┤
+  │ Tags          │ Show all tags, no filtering in API                             │
+  ├───────────────┼────────────────────────────────────────────────────────────────┤
+  │ Locked ToDos  │ Skipped, returned in failedTodos with reason                   │
+  ├───────────────┼────────────────────────────────────────────────────────────────┤
+  │ Localization  │ Hardcoded Czech (same pattern as all other ToDo emails)        │
+  └───────────────┴────────────────────────────────────────────────────────────────┘
+
+  ---
+  Today's Debugging Session
+
+  The email wasn't arriving during earlier testing. Root cause: user ID 69 didn't exist in the database being tested against. SingleOrDefault returned null → empty recipients list → zero emails sent — completely silent. We confirmed
+  this by:
+
+  1. Adding diagnostic Console.WriteLine logging to trace every step
+  2. Testing via curl against the correct database (Prerelease-2026-5-22-10-33)
+  3. Verified the full flow worked end-to-end
+  4. Removed diagnostics and reverted to real recipients logic
+
+  ---
+  Prompt Quality Retrospective
+
+  ┌─────────────────────┬────────────────────────────────────────────────────────┐
+  │       Aspect        │                         Rating                         │
+  ├─────────────────────┼────────────────────────────────────────────────────────┤
+  │ Clarity of task     │ Good — session notes provided full context             │
+  ├─────────────────────┼────────────────────────────────────────────────────────┤
+  │ Iterative debugging │ Efficient — systematic elimination of causes           │
+  ├─────────────────────┼────────────────────────────────────────────────────────┤
+  │ Testing approach    │ Excellent — curl isolation proved infrastructure works │
+  └─────────────────────┴────────────────────────────────────────────────────────┘
+
+  English Correction
+
+  "Mate, we are very, very good — well done! Give me a fairly detailed explanation of what was done in the API repo."
+
+
+✻ Baked for 41s
+
+❯ mám dotaz ohledně 
+
+  https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27920
+
+   
+
+  přemýšlím jakým způsobem, v bulk updatu řešit ToDo které jsou zamknuté (v krajním případě všechny označené ToDo mohou být zamknuté). S Moni jsme po diskuzi došli k možnosti nechat uživatele dialog spustit a nastavit když alespoň
+  jeden označený ToDo je nezamknutý -> před samotným updatem zobrazit Info okno o tom, že ToDo .. ID .. Název jsou zamknuty a nebudou změněny. Když uživatel všechny ToDo zamknuté button pro otevření dialogu pro bulk update zůstane
+  disabled (pak teoreticky taky lze zobrazit Info message "Všechny ToDo jsou uzamknuty, zvol nezamčené ToDo)" jako další varianta.
+
+   
+
+  Další věci co jsme se domluvili :
+  štítky -> zobrazí se všechny štítky (je to prostě číselník)
+  notifikace mailem -> 1 email za každé ToDo s popisem co bylo změněno
+  práva -> který ToDo uživatel může změnit , pak může na nich i udělat bulk update this is conversation about this task, are all points in this conversations already implemented? Is still anything to implement into api ? What gonna
+   be implemented in web ui?
+
+● Let me map each point from the conversation to the current state:
+
+  Already Implemented in API
+
+  ┌───────────────────────────────────┬─────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │               Point               │ Status  │                                                Details                                                 │
+  ├───────────────────────────────────┼─────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Locked ToDos → skip + report      │ ✅ Done │ Handler skips Uzamceno ToDos and returns them in failedTodos with ID, name, and reason                 │
+  ├───────────────────────────────────┼─────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Tags → all tags (číselník)        │ ✅ Done │ API doesn't filter tags — that's a UI-side decision, API just receives tag IDs                         │
+  ├───────────────────────────────────┼─────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Email notifications → 1 per ToDo  │ ✅ Done │ One email per ToDo per recipient, with description of all changes (stav, deadline, tags added/removed) │
+  ├───────────────────────────────────┼─────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Permissions → same as single edit │ ✅ Done │ No extra permission check beyond Uzamceno (as decided)                                                 │
+  └───────────────────────────────────┴─────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+  Nothing Left to Implement in API
+
+  The API endpoint PUT /api/todolist/ukoly/bulk handles everything discussed. The response already returns failedTodos with IDs and names of locked ToDos — the web UI has all the info it needs.
+
+  What Needs to Be Implemented in Web UI
+
+  ┌────────────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │          Feature           │                                                                                                Details                                                                                                 │
+  ├────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Bulk update dialog         │ New dialog with fields for stav, deadline, tags to add, tags to remove                                                                                                                                 │
+  ├────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Button enable/disable      │ Enable the "bulk update" button only when at least one selected ToDo is unlocked. If all selected are locked → button stays disabled (optionally show message "Všechny ToDo jsou uzamknuty, zvol       │
+  │ logic                      │ nezamčené ToDo")                                                                                                                                                                                       │
+  ├────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Pre-update info message    │ Before calling the API, if some selected ToDos are locked → show info dialog listing which ones (ID + name) won't be changed. User confirms → API call proceeds                                        │
+  ├────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Tags dropdown              │ Load all tags from číselník, show in the dialog                                                                                                                                                        │
+  ├────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Response handling          │ After API returns, show result — how many updated, list any failedTodos                                                                                                                                │
+  ├────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Selection mechanism        │ Checkboxes or multi-select in the ToDo list grid to select which ToDos to bulk update                                                                                                                  │
+  └────────────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+
+---------------------------x
 
 Summary — Bulk ToDo Update Feature (API)
 
