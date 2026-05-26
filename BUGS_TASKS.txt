@@ -1,4 +1,36 @@
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29727/
+Bug 29727: Desktop- DMS- seřazení sloupce Verze se nechová jak má
+
+
+Shrnutí pro Peťu (CZ)
+
+  Co je za bug?
+
+  Řazení v DMS nefunguje správně — sestupné řazení u VŠECH sloupců (nejen Verze), protože FileComparer při řazení čte zastaralé hodnoty.
+
+  Proč to vzniklo?
+
+  Monika v dubnu 2025 (commit 2fe896526 — "vraceci slozka se radi nahoru") přepsala logiku řazení. Původní kód (David Šeda, 2022) předával směr
+  a název sloupce přímo do compareru. Monika to nahradila statickými poli, které se nastavují v eventu SortColumnsChanged — ten ale spouští až
+  PO dokončení řazení. Takže comparer při řazení čte hodnoty z předchozího kliknutí.
+
+  Proč si toho nikdo nevšiml?
+
+  - První kliknutí (vzestupně): comparer nemá žádný název sloupce → vrací 0 pro všechno → zachová se původní pořadí → vypadá to správně náhodou
+  - Druhé kliknutí (sestupně): comparer teď má správný sloupec, ale směr je stále "vzestupně" z předchozího kliknutí → seřadí vzestupně místo
+  sestupně
+  - Uživatelé typicky řadí podle názvu vzestupně a jiné sloupce/směry skoro netestují
+
+  Fix (3 změny)
+
+  1. XAML: SortColumnsChanged → SortColumnsChanging (spouští se PŘED řazením)
+  2. Code-behind: handler čte z e.AddedItems místo z SortColumnDescriptions
+  3. FileComparer: odstraněn řádek, který přepisoval správnou hodnotu od Syncfusion zastaralou statickou hodnotou
+
+-----------------------------------------------------------------------------------------------------------------------------------------
+
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29723/
 Bug 29723: Desktop- DMS- strom- kontextové menu- má nějaký důvod pro možnost s otevřením verze v 3D je na složce?
 
