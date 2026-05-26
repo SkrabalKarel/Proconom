@@ -1,4 +1,18 @@
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29723/
+Bug 29723: Desktop- DMS- strom- kontextové menu- má nějaký důvod pro možnost s otevřením verze v 3D je na složce?
+
+So the fix is working correctly. To summarize the test:
+
+  1. List view — select both IFC files (FlatPositionAdifferent 3.ifc + JA_UnL_ARCHITEKTURA-A,B2.ifc), right-click →
+  "Otevřít verze ve 3D prohlížeči" appears ✅
+  2. Tree — right-click folder "nahrané dokumenty" → "Otevřít verze ve 3D prohlížeči" does NOT appear ✅
+
+  The one-line fix is confirmed working.
+
+---------------------------------------------------------------------------------------------------------------------------
+
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27920
 Feature 27920: ToDo: Hromadné označení štítkem [CS-242]
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29651
