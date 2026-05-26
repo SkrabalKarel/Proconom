@@ -50,7 +50,204 @@ Feature 27920: ToDo: Hromadné označení štítkem [CS-242]
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29651
 User Story 29651: Api - ToDo: Hromadné označení štítkem
 ---------------------------x
+ ---
+  Step 0 — Get the React Project Running
 
+  Before any code changes, you need the web UI running locally.
+
+  1. Copy .env.example to .env in the repo root:
+  cd /c/Users/karel.skrabal/source/repos/Proconom_Web_App_TS
+  cp .env.example .env
+  2. Edit .env — set the API URL to your locally running API:
+  REACT_APP_API='https://localhost:44301'
+  3. Install dependencies and start:
+  npm start
+  3. This runs npm install --legacy-peer-deps first, then starts the dev server. First run will take a few minutes.
+  4. The app should open at http://localhost:3000. Login with your credentials, select a database (Prerelease), select a stavba, navigate to "Úkoly" (ToDos).
+
+  Do you already have the project running, or do you need to set it up first?
+
+  ---
+  Implementation Proposal — Bulk ToDo Update (Web UI)
+
+  What already exists (no changes needed)
+
+  ┌────────────────────────────────────────────────────┬────────────────────────────────────────────────────────────────────────┐
+  │                        Item                        │                                 Status                                 │
+  ├────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────┤
+  │ Multi-select in grid (Shift/Ctrl)                  │ Already enabled: selectionSettings={{ mode: 'Row', type: 'Multiple' }} │
+  ├────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────┤
+  │ Selection tracking (selectedTodoIds)               │ Already works — used by bulk delete                                    │
+  ├────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────┤
+  │ FailedTodosDialog component                        │ Already exists — shows locked/failed ToDos                             │
+  ├────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────┤
+  │ Tags loading (toDoList_GetTags)                    │ Already works                                                          │
+  ├────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────┤
+  │ States loading (GetDefaultTodoNastaveniByStavbaId) │ Already works                                                          │
+  ├────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────┤
+  │ Toast notifications                                │ Already works (Utils.successToast/errorToast)                          │
+  └────────────────────────────────────────────────────┴────────────────────────────────────────────────────────────────────────┘
+
+  What needs to be done
+
+  Step 1 — Regenerate NSwag client
+
+  The API endpoint PUT /api/todolist/ukoly/bulk already exists in the API. You need to regenerate webapi.ts so the TypeScript client gets the new toDoList_BulkUpdateToDos() method.
+
+  How: Open NSwag Studio → load configNswagstudio.nswag from repo root → Generate → it overwrites src/services/api/webapi.ts with the new method.
+
+  ---
+  Step 2 — New file: Bulk Update Dialog
+
+  FILE: src/todo/components/bulkUpdateDialog.tsx (NEW)
+
+  This is a MUI Dialog (not Syncfusion — per your rules) that shows:
+
+  ┌──────────────────────────────┬──────────────────────────┬───────────────────────────────────────┐
+  │            Field             │        Component         │               Behavior                │
+  ├──────────────────────────────┼──────────────────────────┼───────────────────────────────────────┤
+  │ Stav (state)                 │ MUI Select dropdown      │ Optional — leave empty = don't change │
+  ├──────────────────────────────┼──────────────────────────┼───────────────────────────────────────┤
+  │ Deadline                     │ MUI DatePicker           │ Optional — leave empty = don't change │
+  ├──────────────────────────────┼──────────────────────────┼───────────────────────────────────────┤
+  │ Přidat štítky (add tags)     │ MUI Autocomplete (multi) │ Select from all available tags        │
+  ├──────────────────────────────┼──────────────────────────┼───────────────────────────────────────┤
+  │ Odebrat štítky (remove tags) │ MUI Autocomplete (multi) │ Select from all available tags        │
+  └──────────────────────────────┴──────────────────────────┴───────────────────────────────────────┘
+
+  WPF analogy: This is like a Window with a ComboBox, a DatePicker, and two ListBox controls with multi-select. The dialog has OK/Cancel buttons. When the user clicks OK, the dialog returns the selected values back to the caller —
+  similar to DialogResult in WPF.
+
+  In React terms:
+  - The dialog is a component that receives props: open (boolean), onClose (callback), tags (available tags), states (available states)
+  - When user clicks "Uložit" (Save), it calls onClose with the form data
+  - When user clicks "Zrušit" (Cancel), it calls onClose(null)
+  - The caller awaits the result using the useShowDialog hook
+
+  ---
+  Step 3 — New file: Bulk Update hook
+
+  FILE: src/todo/hooks/useBulkUpdateTodos.ts (NEW)
+
+  A react-query mutation hook that:
+  1. Creates the authenticated API client
+  2. Calls the NSwag-generated toDoList_BulkUpdateToDos() method
+  3. On success: invalidates the todo list cache, shows success toast
+  4. On error: shows error toast
+  5. Returns failedTodos for the FailedTodosDialog
+
+  WPF analogy: This is like a service method wrapped in a BackgroundWorker — it handles the async API call, error handling, and UI updates after completion. In React, a "hook" is a reusable function that manages state and side effects.
+
+  ---
+  Step 4 — Edit existing file: todoListGrid.tsx
+
+  FILE: src/todo/components/todoListGrid.tsx
+
+  Changes:
+  1. Add "Bulk Update" button to the toolbar (next to the existing "Bulk Delete" button)
+    - Icon: EditIcon from MUI
+    - Tooltip: t('Hromadná úprava') (localized)
+    - Visible when: at least 1 unlocked ToDo is selected
+    - Disabled when: all selected ToDos are locked
+  2. Add click handler handleBulkUpdate:
+    - Gets selected records: gridRef.current?.getSelectedRecords() as ToDoDTO[]
+    - Checks if ALL selected are locked → show info message ("Všechny ToDo jsou uzamknuty"), return
+    - Checks if SOME are locked → show info dialog listing locked ones (ID + name) → user confirms to continue
+    - Opens the BulkUpdateDialog
+    - On dialog result → calls the bulk update hook
+    - On response → shows FailedTodosDialog if any failed, refreshes grid
+
+  WPF analogy: This is like adding a new Button to a ToolBar in XAML, with a Command binding that checks CanExecute (disabled when no selection or all locked) and an Execute method that opens a dialog and processes the result.
+
+  ---
+  Step 5 — Edit existing file: useTodoList.ts
+
+  FILE: src/todo/hooks/useTodoList.ts
+
+  Add the bulk update mutation function (or import from the new hook). Follow the exact same pattern as the existing deleteTodo function.
+
+  ---
+  File Change Summary
+
+  ┌─────┬──────────────────────────────────────────┬────────────┬─────────────────────────────────────────────┐
+  │  #  │                   File                   │   Action   │                    What                     │
+  ├─────┼──────────────────────────────────────────┼────────────┼─────────────────────────────────────────────┤
+  │ 1   │ src/services/api/webapi.ts               │ REGENERATE │ NSwag adds toDoList_BulkUpdateToDos()       │
+  ├─────┼──────────────────────────────────────────┼────────────┼─────────────────────────────────────────────┤
+  │ 2   │ src/todo/components/bulkUpdateDialog.tsx │ NEW        │ MUI dialog with stav, deadline, tags fields │
+  ├─────┼──────────────────────────────────────────┼────────────┼─────────────────────────────────────────────┤
+  │ 3   │ src/todo/hooks/useBulkUpdateTodos.ts     │ NEW        │ React-query mutation hook for the API call  │
+  ├─────┼──────────────────────────────────────────┼────────────┼─────────────────────────────────────────────┤
+  │ 4   │ src/todo/components/todoListGrid.tsx     │ EDIT       │ Add bulk update button + handler to toolbar │
+  ├─────┼──────────────────────────────────────────┼────────────┼─────────────────────────────────────────────┤
+  │ 5   │ src/todo/hooks/useTodoList.ts            │ EDIT       │ Add/integrate bulk update mutation          │
+  └─────┴──────────────────────────────────────────┴────────────┴─────────────────────────────────────────────┘
+
+  Flow Diagram
+
+  User selects ToDos in grid (Shift/Ctrl)
+      ↓
+  Clicks "Hromadná úprava" button
+      ↓
+  handleBulkUpdate() checks selection:
+      ├── ALL locked → info toast "Všechny ToDo jsou uzamknuty" → STOP
+      ├── SOME locked → info dialog listing locked ones → user confirms
+      └── NONE locked → proceed directly
+      ↓
+  Opens BulkUpdateDialog (stav, deadline, tags add/remove)
+      ↓
+  User fills in changes → clicks "Uložit"
+      ↓
+  useBulkUpdateTodos hook calls API: PUT /api/todolist/ukoly/bulk
+      ↓
+  API response:
+      ├── updatedCount > 0 → success toast "X úkolů upraveno"
+      ├── failedTodos.length > 0 → show FailedTodosDialog
+      └── Invalidate cache → grid refreshes automatically
+
+  ---
+  Shall I start with Step 0 (getting the project running), or do you want to jump straight into implementation?
+
+  English Correction
+
+  "Now I'm going to implement the changes in the web UI repo. In the case of this repo, I'm going to be learning HTML, CSS, JavaScript, and React, so I need you to explain thoroughly what will be changed and edited. This task is a tool
+  for teaching me web technology in general. If the description or explanation is too detailed, or if the subject is already well known to me, I will warn you about it, so you can dial back the thoroughness. First, I need to get the
+  React project running. Also, I need a proposal for how to implement the changes. For your information, here are some rules we have: [...]"
+
+
+✻ Churned for 4m 58s
+
+❯ what did you save to *.md memories for next re-use?
+
+● I saved one new file and updated MEMORY.md:
+
+  New file: memory/web-ui-conventions.md
+
+  Contains all the team conventions you shared in your prompt:
+
+  - Exhaustive switch — never type pattern for enum coverage
+  - Type-safe grid field names — keyof / fieldOf<T>() pattern
+  - Unsaved changes hooks — useUnsavedChange + useCanLeaveScopes
+  - Dialog patterns — useConfirmDialog + useShowDialog with providers
+  - Button CSS classes — SfButton with button-green, button-outline-blue, etc.
+  - Icons — Iconify MDI with md-12 through md-56 sizes
+  - Folder structure convention — apiManagers/, components/, models/, store/, hooks/
+  - Store conventions — DataState, thunk prefixes, duck type exports
+  - API client — NSwag generation, ApiClientFactory, nullable checks
+  - .env file setup — all REACT_APP_* variables for first run
+  - Utilities — Lodash, Immer, react-dropzone
+
+  Updated: memory/MEMORY.md
+
+  Added a reference link to the new file under the existing "Proconom_Web_App_TS — Rules" section:
+
+  Team conventions (exhaustive switch, type-safe fields, dialogs, buttons, folder structure, .env setup):
+  → memory/web-ui-conventions.md
+
+  ---
+  To retrieve this in a future session, say: "show me the web UI team conventions from memory"
+
+---------------------------x
 Bulk ToDo Update Feature — API Summary
 
   Endpoint
