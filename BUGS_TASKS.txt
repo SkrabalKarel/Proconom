@@ -1,4 +1,11 @@
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29449/
+User Story 29449: web - Oprávnění na akce WF s procesy
+
+"continue task 29449 WF action rights web"
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29727/
 Bug 29727: Desktop- DMS- seřazení sloupce Verze se nechová jak má
 
