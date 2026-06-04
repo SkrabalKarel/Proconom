@@ -1002,6 +1002,10 @@ Implementation Plan — Feature 28057: Bulk ToDo PDF Export
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28318/
 User Story 28318: api - Administrator - práva na dokumenty - ve skupině "všichni" zobrazovat jen uživatele s právem na vybranou stavbu
 
+-----------------------------------
+continue task 28318 web UI fix
+------------------------------------
+
 PR ---> null parametr jsem pushnul , schvaleneZbvOnly on ManagerStaveb_GetCenyStavbyAsync může chybět!!!!!!!!!!!!!!!!!!!
 Summary — 2026-05-18
 
