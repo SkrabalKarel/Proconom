@@ -1,4 +1,13 @@
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29923/
+Bug 29923: Desktop - MNG - Nastavení stavby - Změny - lze přidat prázdné řádky zahrnutých osob
+
+"bring back single-click editing on dgPodpisy"
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29449/
 User Story 29449: web - Oprávnění na akce WF s procesy
 
