@@ -4,6 +4,77 @@ Bug 29923: Desktop - MNG - Nastavení stavby - Změny - lze přidat prázdné ř
 
 "bring back single-click editing on dgPodpisy"
 
+summarization of api changes
+
+● Summary of All Changes
+
+  Problem
+
+  Two bugs when saving "Nastavení stavby" after changing investor type:
+
+  1. FK constraint violation (FK_c_pozice_vazby_c_pozice) — saving crashed because c_pozice_vazby referenced a c_pozice row that was deleted during investor type change
+  2. Stale orphan positions — positions created with the "+" button for the OLD investor type survived the cleanup and appeared alongside new positions after save
+
+  ---
+  Root Causes
+
+  1. The save loop blindly inserted into c_pozice_vazby using o.KodPozice without checking if that c_pozice row still existed (it was deleted by KopirujPodpisyDleInvestora).
+  2. UlozPodpisSUS (called immediately on "+" click) didn't set def_pozice, so it got DB default 1. The cleanup DELETE condition (def_pozice <> 1 OR def_pozice is null) skipped these rows, leaving them as orphans.
+
+  ---
+  Changes Made
+
+  All changes are in the API repo (Test_Nove_API). No WPF UI changes were made — WPF files were read-only for understanding the flow.
+
+  ---
+  File 1: CustomUsernamePasswordAuth.Service\Service1.cs
+
+  3 edits in method UlozNastaveniStavby:
+
+  ┌─────┬────────────────────────────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │  #  │                  Location                  │                                                                                        What changed                                                                                        │
+  ├─────┼────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ 1   │ OsobyPodpisyZBV loop (~line 2853)          │ Added existence check: SELECT xID FROM c_pozice WHERE xID = @kod. If position exists → UPDATE name. If deleted → INSERT new c_pozice with correct typ_investor and def_pozice = 0, use new │
+  │     │                                            │  ID for c_pozice_vazby.                                                                                                                                                                    │
+  ├─────┼────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ 2   │ OsobyMereni loop (~line 2882)              │ Same pattern as #1, also preserving the popis column.                                                                                                                                      │
+  ├─────┼────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ 3   │ After KopirujPodpisyDleInvestora (~line    │ Added orphan cleanup: DELETE c_pozice rows (and their children via k_pozice_stavba) that belong to the OLD typ_investor and have no c_pozice_vazby references.                             │
+  │     │ 2702)                                      │                                                                                                                                                                                            │
+  └─────┴────────────────────────────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+  ---
+  File 2: CustomUsernamePasswordAuth.Service\ZBVBussiness.cs
+
+  10 edits in method UlozPodpisSUS:
+
+  ┌──────┬─────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │  #   │                                            What changed                                             │
+  ├──────┼─────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ 1–3  │ 3 stavba-level UlozData("c_pozice", ...) calls — added "def_pozice" column with value 0             │
+  ├──────┼─────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ 4–10 │ 7 child-level (objekt/ZBV) UlozData("c_pozice", ...) calls — added "def_pozice" column with value 0 │
+  └──────┴─────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+  This ensures all positions created via the "+" button are marked def_pozice = 0, so the investor-change cleanup DELETE can properly remove them.
+
+  ---
+  What was NOT changed (and why)
+
+  - WPF UI — no changes needed; the bugs were entirely in the API save logic
+  - Web UI endpoint (ManagerStavebController.UpdateNastaveniStavby) — completely separate code path, not affected
+  - New stavba creation / CenováDB import paths — OsobyPodpisyZBV is null in those flows, so the changed loops are never reached
+
+  ---
+  How to test
+
+  1. Open a stavba → Nastavení → pick investor type (e.g. "Správa a údržba silnic")
+  2. Go to ZMĚNY tab, add positions with "+" button (e.g. "s1")
+  3. Go back to OBECNÉ, change investor type (e.g. to "Technická zpráva komunikací")
+  4. Go to ZMĚNY, add new positions (e.g. "s2")
+  5. Click Uložit
+  6. Expected: Only "s2" positions appear. No crash, no "s1" leftovers.
+
 
 -----------------------------------------------------------------------------------------------------------------------------------------------------
 
