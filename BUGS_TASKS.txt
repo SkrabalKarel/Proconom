@@ -1,4 +1,31 @@
 
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29884/
+Bug 29884: Desktop - Rozpočet - dokument prvku - párování modelu na rozpočet - stavba ve fázi realizace nabízí smazání rozpočtu
+
+Bug 29884 — Fix Summary
+
+  One change, one file:
+
+  FILE: Proconom\eConoM\Widgety\Dokumenty\DokumentyWidgetControl.xaml.cs
+  METHOD: CanMoveToForgePair()
+  LINE: ~4758
+
+  What was added: Before showing the "Ano (smazat rozpočet) / Ne (jen BIM vazby)" dialog, a check was added to detect if the stavba is in realization phase or later (FazeStavby >= TYP_MODULU.PROSTAVENOST). If yes, the dialog is skipped and the
+  code goes straight to RemoveData = false — only re-pairing BIM bindings without touching the budget.
+
+  // Added 3 lines:
+  StavbaDC stavba = await ProconomStaticClient.AuthorizedClient.ManagerStavebDesktop_VratStavbuAsync(KodStavba);
+  if (stavba != null && stavba.FazeStavby >= TYP_MODULU.PROSTAVENOST)
+      return ErrResponse.NO;
+
+  Why: In realization phase, budget items (RPol) have FK dependencies (čerpání, měření) that prevent deletion. Clicking "Ano" triggered RemoveData = true, which tried to delete RPol/RSd/HCinnosti and crashed with "Deleted object has bad
+  integrity" (HTTP 400).
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29923/
 Bug 29923: Desktop - MNG - Nastavení stavby - Změny - lze přidat prázdné řádky zahrnutých osob
 
