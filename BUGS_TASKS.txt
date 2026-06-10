@@ -1,4 +1,7 @@
+29977
+ "continue bug 29977 ZBV tile view fix"
 
+-------------------------------------------------------------------------------------------------------------------------------------------------------
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29884/
 Bug 29884: Desktop - Rozpočet - dokument prvku - párování modelu na rozpočet - stavba ve fázi realizace nabízí smazání rozpočtu
