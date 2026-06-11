@@ -1,4 +1,7 @@
-29977
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29977/
+Bug 29977: Desktop- ZBV- Dlaždice- založím objekt ZBV a pak se pokusím založit i ZBV, ale nastane PÁD
+
+
  "continue bug 29977 ZBV tile view fix"
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------
