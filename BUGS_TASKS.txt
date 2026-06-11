@@ -1,3 +1,292 @@
+
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29566/
+
+User Story 29566: web - přidat do nastavení stavby tabulku se sdružením
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/30023
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/30016
+29566
+
+
+ ---
+  Web UI Proposal — Sdružení in Budget Tab (TFS 29566)
+
+  Prerequisites
+
+  Step 0: Regenerate NSwag client — the API changes added sdruzeni + rozpocetHasAnyObject to StavbaNastaveniRozpocetDTO, added
+  sdruzeni to UpdateStavbaNastaveniDTO, and added UpdateSdruzeniDTO / UpdateSdruzeniSpolecnostDTO. You need to regenerate webapi.ts
+   before any web UI work.
+
+  ---
+  Files to Change
+
+  ┌─────┬────────────────────────────────────┬────────┬─────────────────────────────────────────────────────────────────────────┐
+  │  #  │                File                │ Action │                                 Purpose                                 │
+  ├─────┼────────────────────────────────────┼────────┼─────────────────────────────────────────────────────────────────────────┤
+  │ 1   │ settingsScene.tsx                  │ EDIT   │ Add banks fetch to fetchData(), expose via BuildingHelpersContext       │
+  ├─────┼────────────────────────────────────┼────────┼─────────────────────────────────────────────────────────────────────────┤
+  │ 2   │ seznamStaveb/common/types/types.ts │ EDIT   │ Add SdruzeniItem interface (extends generated DTO + status + dummyId)   │
+  ├─────┼────────────────────────────────────┼────────┼─────────────────────────────────────────────────────────────────────────┤
+  │ 3   │ budget/budgetScene.tsx             │ EDIT   │ Import and render <SdruzeniSection> below existing content              │
+  ├─────┼────────────────────────────────────┼────────┼─────────────────────────────────────────────────────────────────────────┤
+  │ 4   │ budget/sdruzeniSection.tsx         │ NEW    │ Main section: header fields (Značka, Název, Banka) + member table + add │
+  │     │                                    │        │  row                                                                    │
+  ├─────┼────────────────────────────────────┼────────┼─────────────────────────────────────────────────────────────────────────┤
+  │ 5   │ budget/sdruzeniMemberRow.tsx       │ NEW    │ Single member row: partner select, podíl %, order, delete button        │
+  ├─────┼────────────────────────────────────┼────────┼─────────────────────────────────────────────────────────────────────────┤
+  │ 6   │ settingsActions.tsx                │ EDIT   │ Pass sdruzeni in UpdateStavbaNastaveniDTO on save                       │
+  └─────┴────────────────────────────────────┴────────┴─────────────────────────────────────────────────────────────────────────┘
+
+  ---
+  Detailed Changes
+
+  1. settingsScene.tsx — Fetch banks, add to helpers context
+
+  What changes:
+  - Add BankDTO to imports from webapi
+  - Fetch banks in fetchData(): client.ciselnik_GetAllBanks({}) inside the Promise.all
+  - Add banks: BankDTO[] to BuildingHelpersData interface
+  - Set banks into buildingHelpersData
+
+  No new context needed — sdružení data is already inside StavbaNastaveniRozpocetDTO.sdruzeni (after NSwag regen), so it travels
+  with BudgetContext. Banks go into BuildingHelpersContext.
+
+  2. types.ts — Add SdruzeniItem
+
+  export interface SdruzeniItem extends StavbaNastaveniProstavenostSdruzeniSpolecnostDTO {
+      status: ITEM_STATUS;
+      dummyId: string;
+  }
+
+  This follows the same pattern as MeasurementItem.
+
+  3. budgetScene.tsx — Render <SdruzeniSection>
+
+  Add <SdruzeniSection /> below the existing content. The section reads from BudgetContext (budgetSettings.sdruzeni) and
+  BuildingHelpersContext (banks, partners). The entire section is disabled (read-only) when budgetSettings.rozpocetHasAnyObject ===
+   true.
+
+  4. budget/sdruzeniSection.tsx — Main section component (NEW)
+
+  Structure:
+  ┌─────────────────────────────────────────────────────┐
+  │ Sdružení                                    [+ Přidat člena]  │
+  │                                                               │
+  │ Značka: [________]  Název: [________]  Banka: [▼ select]     │
+  │                                                               │
+  │ ┌──────────┬──────────┬──────────┬─────┐                     │
+  │ │ Partner  │ Podíl %  │ Pořadí   │  🗑  │                    │
+  │ ├──────────┼──────────┼──────────┼─────┤                     │
+  │ │ [▼ sel]  │ [__]     │ [__]     │  🗑  │                    │
+  │ │ [▼ sel]  │ [__]     │ [__]     │  🗑  │                    │
+  │ └──────────┴──────────┴──────────┴─────┘                     │
+  │                               Součet: 100%                    │
+  │                                                               │
+  │                                    [Smazat sdružení]          │
+  └───────────────────────────────────────────────────────────────┘
+
+  Business rules (matching WPF desktop):
+  - Always visible on the Budget tab
+  - Disabled (all fields read-only, add/delete buttons hidden) when rozpocetHasAnyObject === true
+  - Značka is required — validation on save
+  - Percentage sum must = 100% on save (validated by API handler too)
+  - No duplicate partners — filter out already-selected partners from the dropdown
+  - Add member: creates item with status: ITEM_STATUS.ADDED, dummyId: crypto.randomUUID()
+  - Edit member: sets status: ITEM_STATUS.UPDATED (unless already ADDED)
+  - Delete member: if status === ADDED → remove from array; else → mark status: DELETED
+  - Partners list comes from SettingsContext.partners
+  - Banks list comes from BuildingHelpersContext.buildingHelpersData.banks
+
+  State management: the sdružení header fields (znacka, nazev, bankaId) + member list are managed as local state initialized from
+  budgetSettings.sdruzeni. On save, they're mapped to UpdateSdruzeniDTO.
+
+  5. budget/sdruzeniMemberRow.tsx — Member row (NEW)
+
+  Follows measurementItem.tsx pattern:
+  - memo wrapped component
+  - Uses onBlur + defaultValue for text fields
+  - Partner = Autocomplete from MUI (same pattern as other partner selects)
+  - Podíl = NumberField
+  - Delete = IconButton with DeleteOutlineIcon
+
+  6. settingsActions.tsx — Wire save
+
+  In handleSaveSettings(), add the sdruzeni field to updatedSettings:
+
+  const updatedSettings: UpdateStavbaNastaveniDTO = {
+      stavbaId,
+      obecne: basicSettings,
+      dochazka: attendanceSettings,
+      rozpocet: budgetSettings,
+      zmeny: { ... },
+      mereni: { ... },
+      prostavenost: { ... },
+      fakturace: { ... },
+      sdruzeni: sdruzeniData,  // ← NEW: mapped from BudgetContext or a new sdruzeni context
+  };
+
+  The sdruzeniData is built by mapping the local state to UpdateSdruzeniDTO:
+  - id, znacka, nazev, bankaId from header fields
+  - smazat: false (unless the "delete sdružení" button was clicked)
+  - spolecnosti: mapped from SdruzeniItem[] with their status values
+
+  The changesSame() function in settingsScene.tsx also needs to include sdružení comparison.
+
+  ---
+  Data Flow Summary
+
+  API Response:
+    stavbaSettings.rozpocet.sdruzeni  →  BudgetContext (budgetSettings)
+    stavbaSettings.rozpocet.rozpocetHasAnyObject  →  BudgetContext
+
+  User edits sdružení in BudgetScene → SdruzeniSection
+    ↓
+  Save button → settingsActions.tsx
+    ↓
+  UpdateStavbaNastaveniDTO.sdruzeni = { id, znacka, nazev, bankaId, smazat, spolecnosti: [...] }
+    ↓
+  API: UpdateNastaveniStavbyHandler → UpdateNastaveniStavbySdruzeniHandler (MediatR)
+    ↓
+  DB: c_sdruzeni + s_stavby_sdruzeni + EXEC usp_pol_nastavSdruzeniDleDefaultStavby
+
+  ---
+  What I will NOT change
+
+  - dodavatele.tsx — still reads from buildingSettings.prostavenost.sdruzeni (backward compat, API copies data to both places)
+  - Implementation interface in types.ts — keeps sdruzeni field (used by dodavatele + implementation tab)
+  - ImplementationContext — untouched
+  - No new React context needed — sdružení travels with BudgetContext already
+
+  ---
+  Shall I proceed with implementation? The order would be:
+  1. You regenerate NSwag types first (I can't run NSwag)
+  2. Then I implement files 1→6 in sequence
+
+✻ Crunched for 8m 50s
+
+● Background command "Search for files containing sdruzeni or Sdruzeni" completed (exit code 0)
+
+● The NSwag regeneration needs to happen first. Once you regenerate the types, I'll implement the 6 files. Do you want to
+  regenerate NSwag now, or should I proceed with writing the code using the types I know will be generated (and you regenerate
+  after)?
+
+
+
+--------------------------x
+
+Guide updated with 4 new concepts (45–48). Now here's the proposal for step 1:
+
+  ---
+  Step 1: settingsScene.tsx — Fetch banks, add to helpers context
+
+  What changes and why
+
+  You need banks data for the Sdružení section's "Banka" dropdown. Banks aren't currently fetched in settings. We add them to
+  BuildingHelpersData (the existing context for lookup lists like investors, cenDBs, fidics).
+
+  Change A — Add BankDTO to imports (line 11)
+
+  FILE: settingsScene.tsx
+  LINE: 11 (imports from webapi)
+
+  Add BankDTO to the existing import:
+
+  // BEFORE (line 10-25):
+  import {
+      CiselnikEntityDTO,
+      FidicType,
+      ...
+  } from '../../../services/api/webapi';
+
+  // AFTER — add BankDTO:
+  import {
+      BankDTO,          // ← NEW
+      CiselnikEntityDTO,
+      FidicType,
+      ...
+  } from '../../../services/api/webapi';
+
+  Change B — Add banks to BuildingHelpersData interface (line 65-70)
+
+  // BEFORE:
+  interface BuildingHelpersData {
+      seznamInvestoru: InvestorType[];
+      seznamCenDbs: CiselnikEntityDTO[];
+      seznamFidic: FidicType[];
+      seznamInvestici: UtvarInvestmentDTO[];
+  }
+
+  // AFTER — add banks field:
+  interface BuildingHelpersData {
+      seznamInvestoru: InvestorType[];
+      seznamCenDbs: CiselnikEntityDTO[];
+      seznamFidic: FidicType[];
+      seznamInvestici: UtvarInvestmentDTO[];
+      banks: BankDTO[];              // ← NEW
+  }
+
+  This uses concept #45 — the interface defines the shape of what BuildingHelpersContext provides.
+
+  Change C — Fetch banks in fetchData() (line 228-231)
+
+  Add ciselnik_GetAllBanks to the existing Promise.all:
+
+  // BEFORE (line 228-231):
+  const responses = await Promise.all([
+      client.managerStaveb_GetNastaveniStavby(stavbaId),
+      client.users_VratNastaveniUzivatele(),
+  ]);
+
+  // AFTER — add banks fetch:
+  const responses = await Promise.all([
+      client.managerStaveb_GetNastaveniStavby(stavbaId),
+      client.users_VratNastaveniUzivatele(),
+      client.ciselnik_GetAllBanks(null),    // ← NEW
+  ]);
+  const banks = responses[2].banks ?? [];    // ← NEW
+
+  This uses concept #26 (Promise.all) — all 3 API calls run in parallel, no wasted time.
+
+  Change D — Set banks into buildingHelpersData (line 300-305)
+
+  // BEFORE (line 300-305):
+  setBuildingHelpersData({
+      seznamCenDbs: stavbaSettings.seznamCenDbs,
+      seznamFidic: stavbaSettings.seznamFidic,
+      seznamInvestici: stavbaSettings.seznamInvestici,
+      seznamInvestoru: stavbaSettings.seznamInvestoru,
+  });
+
+  // AFTER — add banks:
+  setBuildingHelpersData({
+      seznamCenDbs: stavbaSettings.seznamCenDbs,
+      seznamFidic: stavbaSettings.seznamFidic,
+      seznamInvestici: stavbaSettings.seznamInvestici,
+      seznamInvestoru: stavbaSettings.seznamInvestoru,
+      banks,                                    // ← NEW (shorthand for banks: banks)
+  });
+
+  Summary — 4 small edits in one file
+
+  ┌───────────────────────────────┬────────────────────────────────┬───────────────────────────────────┐
+  │           Location            │              What              │           Concept used            │
+  ├───────────────────────────────┼────────────────────────────────┼───────────────────────────────────┤
+  │ Import block                  │ Add BankDTO                    │ —                                 │
+  ├───────────────────────────────┼────────────────────────────────┼───────────────────────────────────┤
+  │ BuildingHelpersData interface │ Add banks: BankDTO[]           │ #45 (typed interface for context) │
+  ├───────────────────────────────┼────────────────────────────────┼───────────────────────────────────┤
+  │ fetchData() Promise.all       │ Add ciselnik_GetAllBanks(null) │ #26 (parallel API calls)          │
+  ├───────────────────────────────┼────────────────────────────────┼───────────────────────────────────┤
+  │ setBuildingHelpersData        │ Add banks                      │ #5 (spread/object shorthand)      │
+  └───────────────────────────────┴────────────────────────────────┴───────────────────────────────────┘
+
+  No other files change in this step. The banks data will be available to any component that consumes BuildingHelpersContext.
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------------
+
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/30008
 Bug 30008: Desktop - Prostavěnost - tabulkové zobrazení - horní seznam sloupců je uříznutý
 
