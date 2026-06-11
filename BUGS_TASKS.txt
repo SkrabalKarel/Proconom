@@ -1,3 +1,39 @@
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/30008
+Bug 30008: Desktop - Prostavěnost - tabulkové zobrazení - horní seznam sloupců je uříznutý
+
+Bug 30008 — Summary
+
+  TFS: 30008
+  Title: Desktop - Prostavěnost - tabulkové zobrazení - horní seznam sloupců je uříznutý
+  DB: Prerelease
+
+  Problem: Column headers in the Prostavěnost tile view were cut off on the right side. Columns like "Zbývá prostavit" and "Zbývá
+  celkem [Kč]" were invisible/truncated. No horizontal scrollbar, and several columns had high MinWidth values preventing users
+  from shrinking them.
+
+  FILE: Proconom\eConoM\ProconomSections\ZPSectionSeznam.xaml
+
+  4 changes applied:
+
+  ┌─────┬──────────────────────────────────┬──────┬──────────┬──────┐
+  │  #  │               What               │ Line │   Old    │ New  │
+  ├─────┼──────────────────────────────────┼──────┼──────────┼──────┤
+  │ 1   │ Enable horizontal scrollbar      │ 361  │ Disabled │ Auto │
+  ├─────┼──────────────────────────────────┼──────┼──────────┼──────┤
+  │ 2   │ Prostavěno v období MinWidth     │ 902  │ 220      │ 80   │
+  ├─────┼──────────────────────────────────┼──────┼──────────┼──────┤
+  │ 3   │ Čerpáno [Kč] v období MinWidth   │ 1187 │ 160      │ 80   │
+  ├─────┼──────────────────────────────────┼──────┼──────────┼──────┤
+  │ 4   │ Čerpáno od počátku [Kč] MinWidth │ 1239 │ 180      │ 80   │
+  └─────┴──────────────────────────────────┴──────┴──────────┴──────┘
+
+  Known limitation: The last two columns ("Zbývá prostavit", "Zbývá celkem [Kč]") remain non-resizable — this is a WPF DataGrid
+  behavior where the rightmost columns have no drag grip on their right edge. The horizontal scrollbar solves the visibility issue
+  regardless.
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29977/
 Bug 29977: Desktop- ZBV- Dlaždice- založím objekt ZBV a pak se pokusím založit i ZBV, ale nastane PÁD
 
