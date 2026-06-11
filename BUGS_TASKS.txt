@@ -4,6 +4,64 @@ Bug 29977: Desktop- ZBV- Dlaždice- založím objekt ZBV a pak se pokusím zalo�
 
  "continue bug 29977 ZBV tile view fix"
 
+
+----------------------x
+
+Bug 29977 — Current State Summary
+
+  What's done (crash fix — in the diff now)
+
+  FILE: Proconom\eConoM\ProconomSections\ZmenySectionSeznam.xaml.cs
+  Branch: prerelease
+  Path: Tag == 2, STAVBA path (line 607+)
+
+  ┌───────────────────┬─────────┬─────────────────────────────────────────────────────────┐
+  │      Change       │  Line   │                          What                           │
+  ├───────────────────┼─────────┼─────────────────────────────────────────────────────────┤
+  │ Constructor       │ 665     │ new(kodStavby) → new(true, kodStavby)                   │
+  ├───────────────────┼─────────┼─────────────────────────────────────────────────────────┤
+  │ DataContext       │ 666     │ ZBVDC → ZBVDTO with TypInvestor, kodStavba              │
+  ├───────────────────┼─────────┼─────────────────────────────────────────────────────────┤
+  │ Response handling │ 689–712 │ Single ZBVDC cast → pattern match for both ZBVDC/ZBVDTO │
+  └───────────────────┴─────────┴─────────────────────────────────────────────────────────┘
+
+  Result: No more NullReferenceException when creating ZBV from tile view on STAVBA. Verified working.
+
+  ---
+  What's NOT done (refresh after creation)
+
+  After creating a new object+ZBV in tile view, the grid doesn't show the new item until manual Refresh click. The old
+  ExpandCollapse double-toggle pattern doesn't re-fetch from API because children are already loaded (not lazy placeholders).
+
+  Affected locations (all use the same broken ExpandCollapse × 2 pattern):
+
+  ┌─────┬────────────────────────────────┬─────────┬────────────────────────────┐
+  │  #  │              Path              │  Lines  │       Current state        │
+  ├─────┼────────────────────────────────┼─────────┼────────────────────────────┤
+  │ 1   │ Tag==2, OBJEKT, ZBVDC success  │ 534     │ No refresh at all          │
+  ├─────┼────────────────────────────────┼─────────┼────────────────────────────┤
+  │ 2   │ Tag==2, OBJEKT, ZBVDTO success │ 595–599 │ ExpandCollapse(Objekt) × 2 │
+  ├─────┼────────────────────────────────┼─────────┼────────────────────────────┤
+  │ 3   │ Tag==2, OBJEKT, cancel         │ 604     │ No refresh at all          │
+  ├─────┼────────────────────────────────┼─────────┼────────────────────────────┤
+  │ 4   │ Tag==2, STAVBA, success        │ ~698    │ ExpandCollapse(refe) × 2   │
+  ├─────┼────────────────────────────────┼─────────┼────────────────────────────┤
+  │ 5   │ Tag==2, STAVBA, cancel         │ ~706    │ ExpandCollapse(Objekt) × 2 │
+  ├─────┼────────────────────────────────┼─────────┼────────────────────────────┤
+  │ 6   │ Tag==0, OBJEKT (Založit ZBV)   │ 370–371 │ ExpandCollapse(row) × 2    │
+  └─────┴────────────────────────────────┴─────────┴────────────────────────────┘
+
+  Attempted fix: Replace all with UserControl_Loaded(null, null) — worked for STAVBA top-level, but sub-items (OBJEKT path) still
+  showed stale children after expand. Reverted.
+
+  Root cause: ExpandCollapse only re-fetches when children have a lazy placeholder (Children.Count == 1 && Children[0].Cells ==
+  null). Once real children are loaded, the double-toggle just hides/shows the same stale data.
+
+  Next step: Need a refresh approach that invalidates the lazy-load cache for the specific parent node, or fully reloads the tree
+  like Refresh() does — but one that actually works for nested nodes, not just the root.
+
+  ---
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29884/
