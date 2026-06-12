@@ -10,6 +10,11 @@ https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/30016
 
 -------------------x
 
+"Read my session context from C:\Users\karel.skrabal\Documents\Test1\Source\tfs29566-web-session-context.md and continue
+  with TFS 29566 web UI implementation"
+
+-------------------x
+
 !!!!!!!!!!!!! SQL testing !!!!!!!!!!!!!!!!!!!!!!
 
  -- Stavby that have nastaveni but NO objects in r_objekty
