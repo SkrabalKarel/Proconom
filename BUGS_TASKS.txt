@@ -7,6 +7,269 @@ User Story 29566: web - přidat do nastavení stavby tabulku se sdružením
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/30023
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/30016
 29566
+
+-------------------x
+!!!!!!!!!!! complete curl testing for all endpoints !!!!!!!!!!!!!!
+We can redirect all curl outputs to files in that folder, and I can read them directly. Here's the approach:
+
+  Output folder: C:\Users\karel.skrabal\Documents\Test1\Source\curl_results\
+
+  Each test writes to a numbered file. After you run a batch, just tell me and I'll read the results.
+
+  OUT="C:/Users/karel.skrabal/Documents/Test1/Source/curl_results"
+  mkdir -p "$OUT"
+
+  Step 0.5: Save settings base
+
+  curl -sk -X GET "https://localhost:44301/api/ManagerStaveb/stavby/${STAVBA_ID}/nastaveni" \
+    -H "Authorization: Bearer $TOKEN" | jq '.stavbaNastaveni' > /tmp/settings.json
+
+  Test 1: GET — sdruzeni + rozpocetHasAnyObject
+
+  curl -sk -X GET "https://localhost:44301/api/ManagerStaveb/stavby/${STAVBA_ID}/nastaveni" \
+    -H "Authorization: Bearer $TOKEN" | jq '.stavbaNastaveni.rozpocet | {sdruzeni, rozpocetHasAnyObject}' > "$OUT/test01.json"
+
+  Test 2: GET — prostavenost backward compat
+
+  curl -sk -X GET "https://localhost:44301/api/ManagerStaveb/stavby/${STAVBA_ID}/nastaveni" \
+    -H "Authorization: Bearer $TOKEN" | jq '.stavbaNastaveni.prostavenost.sdruzeni' > "$OUT/test02.json"
+
+  Test 3: PUT — Create sdružení
+
+  cat /tmp/settings.json | jq '{stavbaNastaveni: {
+    stavbaId: .stavbaId,
+    obecne: .obecne,
+    dochazka: .dochazka,
+    rozpocet: .rozpocet,
+    zmeny: {pozice: [.zmeny.seznamPozic[] | . + {status: 0}]},
+    mereni: {pozice: [.mereni.seznamPozic[] | . + {status: 0}], precerpaniMereni: .mereni.precerpaniMereni, mereniPoMesicich:
+  .mereni.mereniPoMesicich, procentualniMereni: .mereni.procentualniMereni},
+    prostavenost: {data: .prostavenost.data, pozice: [.prostavenost.seznamPozic[] | . + {status: 0}]},
+    fakturace: {data: .fakturace.data, pozice: .fakturace.seznamPodpisu},
+    sdruzeni: {
+      id: null,
+      znacka: "SDR-TEST-01",
+      nazev: "Testovací sdružení",
+      bankaId: 4,
+      smazat: false,
+      spolecnosti: [
+        {id: null, partnerId: 1, poradi: 1, podil: 60, status: 1},
+        {id: null, partnerId: 2, poradi: 2, podil: 40, status: 1}
+      ]
+    }
+  }}' > /tmp/put_payload.json
+
+  curl -sk -X PUT "https://localhost:44301/api/ManagerStaveb/stavby/nastaveni" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN" \
+    -d @/tmp/put_payload.json | jq '.stavbaNastaveni.rozpocet.sdruzeni' > "$OUT/test03.json"
+
+  Test 4: PUT — Update (change name + podíl)
+
+  After Test 3: grab IDs from test03.json, set SDR_ID, MEMBER_ID_1, MEMBER_ID_2.
+
+  cat /tmp/settings.json | jq '{stavbaNastaveni: {
+    stavbaId: .stavbaId,
+    obecne: .obecne,
+    dochazka: .dochazka,
+    rozpocet: .rozpocet,
+    zmeny: {pozice: [.zmeny.seznamPozic[] | . + {status: 0}]},
+    mereni: {pozice: [.mereni.seznamPozic[] | . + {status: 0}], precerpaniMereni: .mereni.precerpaniMereni, mereniPoMesicich:
+  .mereni.mereniPoMesicich, procentualniMereni: .mereni.procentualniMereni},
+    prostavenost: {data: .prostavenost.data, pozice: [.prostavenost.seznamPozic[] | . + {status: 0}]},
+    fakturace: {data: .fakturace.data, pozice: .fakturace.seznamPodpisu},
+    sdruzeni: {
+      id: '"$SDR_ID"',
+      znacka: "SDR-TEST-01-UPD",
+      nazev: "Updatované sdružení",
+      bankaId: 4,
+      smazat: false,
+      spolecnosti: [
+        {id: '"$MEMBER_ID_1"', partnerId: 1, poradi: 1, podil: 70, status: 2},
+        {id: '"$MEMBER_ID_2"', partnerId: 2, poradi: 2, podil: 30, status: 2}
+      ]
+    }
+  }}' > /tmp/put_payload.json
+
+  curl -sk -X PUT "https://localhost:44301/api/ManagerStaveb/stavby/nastaveni" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN" \
+    -d @/tmp/put_payload.json | jq '.stavbaNastaveni.rozpocet.sdruzeni' > "$OUT/test04.json"
+
+  Test 5: PUT — Add 3rd member
+
+  cat /tmp/settings.json | jq '{stavbaNastaveni: {
+    stavbaId: .stavbaId,
+    obecne: .obecne,
+    dochazka: .dochazka,
+    rozpocet: .rozpocet,
+    zmeny: {pozice: [.zmeny.seznamPozic[] | . + {status: 0}]},
+    mereni: {pozice: [.mereni.seznamPozic[] | . + {status: 0}], precerpaniMereni: .mereni.precerpaniMereni, mereniPoMesicich:
+  .mereni.mereniPoMesicich, procentualniMereni: .mereni.procentualniMereni},
+    prostavenost: {data: .prostavenost.data, pozice: [.prostavenost.seznamPozic[] | . + {status: 0}]},
+    fakturace: {data: .fakturace.data, pozice: .fakturace.seznamPodpisu},
+    sdruzeni: {
+      id: '"$SDR_ID"',
+      znacka: "SDR-TEST-01-UPD",
+      nazev: "Updatované sdružení",
+      bankaId: 4,
+      smazat: false,
+      spolecnosti: [
+        {id: '"$MEMBER_ID_1"', partnerId: 1, poradi: 1, podil: 40, status: 2},
+        {id: '"$MEMBER_ID_2"', partnerId: 2, poradi: 2, podil: 30, status: 0},
+        {id: null, partnerId: 3, poradi: 3, podil: 30, status: 1}
+      ]
+    }
+  }}' > /tmp/put_payload.json
+
+  curl -sk -X PUT "https://localhost:44301/api/ManagerStaveb/stavby/nastaveni" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN" \
+    -d @/tmp/put_payload.json | jq '.stavbaNastaveni.rozpocet.sdruzeni' > "$OUT/test05.json"
+
+  Test 6: PUT — Delete member 3
+
+  After Test 5: grab 3rd member ID from test05.json, set MEMBER_ID_3.
+
+  cat /tmp/settings.json | jq '{stavbaNastaveni: {
+    stavbaId: .stavbaId,
+    obecne: .obecne,
+    dochazka: .dochazka,
+    rozpocet: .rozpocet,
+    zmeny: {pozice: [.zmeny.seznamPozic[] | . + {status: 0}]},
+    mereni: {pozice: [.mereni.seznamPozic[] | . + {status: 0}], precerpaniMereni: .mereni.precerpaniMereni, mereniPoMesicich:
+  .mereni.mereniPoMesicich, procentualniMereni: .mereni.procentualniMereni},
+    prostavenost: {data: .prostavenost.data, pozice: [.prostavenost.seznamPozic[] | . + {status: 0}]},
+    fakturace: {data: .fakturace.data, pozice: .fakturace.seznamPodpisu},
+    sdruzeni: {
+      id: '"$SDR_ID"',
+      znacka: "SDR-TEST-01-UPD",
+      nazev: "Updatované sdružení",
+      bankaId: 4,
+      smazat: false,
+      spolecnosti: [
+        {id: '"$MEMBER_ID_1"', partnerId: 1, poradi: 1, podil: 60, status: 2},
+        {id: '"$MEMBER_ID_2"', partnerId: 2, poradi: 2, podil: 40, status: 0},
+        {id: '"$MEMBER_ID_3"', partnerId: 3, poradi: 3, podil: 0, status: 3}
+      ]
+    }
+  }}' > /tmp/put_payload.json
+
+  curl -sk -X PUT "https://localhost:44301/api/ManagerStaveb/stavby/nastaveni" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN" \
+    -d @/tmp/put_payload.json | jq '.stavbaNastaveni.rozpocet.sdruzeni' > "$OUT/test06.json"
+
+  Test 7: PUT — Delete entire sdružení
+
+  cat /tmp/settings.json | jq '{stavbaNastaveni: {
+    stavbaId: .stavbaId,
+    obecne: .obecne,
+    dochazka: .dochazka,
+    rozpocet: .rozpocet,
+    zmeny: {pozice: [.zmeny.seznamPozic[] | . + {status: 0}]},
+    mereni: {pozice: [.mereni.seznamPozic[] | . + {status: 0}], precerpaniMereni: .mereni.precerpaniMereni, mereniPoMesicich:
+  .mereni.mereniPoMesicich, procentualniMereni: .mereni.procentualniMereni},
+    prostavenost: {data: .prostavenost.data, pozice: [.prostavenost.seznamPozic[] | . + {status: 0}]},
+    fakturace: {data: .fakturace.data, pozice: .fakturace.seznamPodpisu},
+    sdruzeni: {
+      id: '"$SDR_ID"',
+      smazat: true,
+      spolecnosti: []
+    }
+  }}' > /tmp/put_payload.json
+
+  curl -sk -X PUT "https://localhost:44301/api/ManagerStaveb/stavby/nastaveni" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN" \
+    -d @/tmp/put_payload.json | jq '.stavbaNastaveni.rozpocet.sdruzeni' > "$OUT/test07.json"
+
+  Test 8: PUT — Validation: empty Značka
+
+  cat /tmp/settings.json | jq '{stavbaNastaveni: {
+    stavbaId: .stavbaId,
+    obecne: .obecne,
+    dochazka: .dochazka,
+    rozpocet: .rozpocet,
+    zmeny: {pozice: [.zmeny.seznamPozic[] | . + {status: 0}]},
+    mereni: {pozice: [.mereni.seznamPozic[] | . + {status: 0}], precerpaniMereni: .mereni.precerpaniMereni, mereniPoMesicich:
+  .mereni.mereniPoMesicich, procentualniMereni: .mereni.procentualniMereni},
+    prostavenost: {data: .prostavenost.data, pozice: [.prostavenost.seznamPozic[] | . + {status: 0}]},
+    fakturace: {data: .fakturace.data, pozice: .fakturace.seznamPodpisu},
+    sdruzeni: {
+      id: null,
+      znacka: "",
+      nazev: "Test",
+      bankaId: 4,
+      smazat: false,
+      spolecnosti: [
+        {id: null, partnerId: 1, poradi: 1, podil: 100, status: 1}
+      ]
+    }
+  }}' > /tmp/put_payload.json
+
+  curl -sk -w "\nHTTP_STATUS: %{http_code}\n" -X PUT "https://localhost:44301/api/ManagerStaveb/stavby/nastaveni" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN" \
+    -d @/tmp/put_payload.json > "$OUT/test08.json" 2>/dev/null
+
+  Test 9: PUT — Validation: podíl != 100%
+
+  cat /tmp/settings.json | jq '{stavbaNastaveni: {
+    stavbaId: .stavbaId,
+    obecne: .obecne,
+    dochazka: .dochazka,
+    rozpocet: .rozpocet,
+    zmeny: {pozice: [.zmeny.seznamPozic[] | . + {status: 0}]},
+    mereni: {pozice: [.mereni.seznamPozic[] | . + {status: 0}], precerpaniMereni: .mereni.precerpaniMereni, mereniPoMesicich:
+  .mereni.mereniPoMesicich, procentualniMereni: .mereni.procentualniMereni},
+    prostavenost: {data: .prostavenost.data, pozice: [.prostavenost.seznamPozic[] | . + {status: 0}]},
+    fakturace: {data: .fakturace.data, pozice: .fakturace.seznamPodpisu},
+    sdruzeni: {
+      id: null,
+      znacka: "SDR-VAL",
+      nazev: "Validation test",
+      bankaId: 4,
+      smazat: false,
+      spolecnosti: [
+        {id: null, partnerId: 1, poradi: 1, podil: 60, status: 1},
+        {id: null, partnerId: 2, poradi: 2, podil: 30, status: 1}
+      ]
+    }
+  }}' > /tmp/put_payload.json
+
+  curl -sk -w "\nHTTP_STATUS: %{http_code}\n" -X PUT "https://localhost:44301/api/ManagerStaveb/stavby/nastaveni" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN" \
+    -d @/tmp/put_payload.json > "$OUT/test09.json" 2>/dev/null
+
+  Test 10: PUT — sdruzeni=null (skip)
+
+  cat /tmp/settings.json | jq '{stavbaNastaveni: {
+    stavbaId: .stavbaId,
+    obecne: .obecne,
+    dochazka: .dochazka,
+    rozpocet: .rozpocet,
+    zmeny: {pozice: [.zmeny.seznamPozic[] | . + {status: 0}]},
+    mereni: {pozice: [.mereni.seznamPozic[] | . + {status: 0}], precerpaniMereni: .mereni.precerpaniMereni, mereniPoMesicich:
+  .mereni.mereniPoMesicich, procentualniMereni: .mereni.procentualniMereni},
+    prostavenost: {data: .prostavenost.data, pozice: [.prostavenost.seznamPozic[] | . + {status: 0}]},
+    fakturace: {data: .fakturace.data, pozice: .fakturace.seznamPodpisu},
+    sdruzeni: null
+  }}' > /tmp/put_payload.json
+
+  curl -sk -w "\nHTTP_STATUS: %{http_code}\n" -X PUT "https://localhost:44301/api/ManagerStaveb/stavby/nastaveni" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN" \
+    -d @/tmp/put_payload.json > "$OUT/test10.json" 2>/dev/null
+
+  ---
+  Workflow: You run the curls → tell me "check results" → I read from C:\Users\karel.skrabal\Documents\Test1\Source\curl_results\test01.json through
+  test10.json and evaluate.
+
+  For tests 8/9/10 I added -w "\nHTTP_STATUS: %{http_code}\n" so the status code is captured in the file too (important for validation tests).
+
+
 ------------------x
 
 Complete Curl Test Set — Sdružení (TFS 29566)
