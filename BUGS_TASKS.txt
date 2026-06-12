@@ -9,6 +9,77 @@ https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/30016
 29566
 
 -------------------x
+
+!!!!!!!!!!!!! SQL testing !!!!!!!!!!!!!!!!!!!!!!
+
+ -- Stavby that have nastaveni but NO objects in r_objekty
+  SELECT TOP 10
+      s.xID AS StavbaId,
+      s.Znacka,
+      s.Nazev,
+      sdr.xID AS SdruzeniId,
+      sdr.Znacka AS SdruzeniZnacka
+  FROM [Prerelease-2026-5-22-10-33].dbo.s_stavby s
+  INNER JOIN [Prerelease-2026-5-22-10-33].dbo.s_stavby_nastaveni sn ON sn.k_stavba = s.xID
+  LEFT JOIN [Prerelease-2026-5-22-10-33].dbo.r_objekty ro ON ro.k_stavba = s.xID
+  LEFT JOIN [Prerelease-2026-5-22-10-33].dbo.c_sdruzeni sdr ON sdr.k_stavba = s.xID
+  WHERE ro.xID IS NULL
+  ORDER BY s.xID DESC;
+
+  -- Available partners (zhotovitelé)
+  SELECT TOP 20 p.xID AS PartnerId, p.Nazev, p.Znacka
+  FROM [Prerelease-2026-5-22-10-33].dbo.c_partneri p
+  ORDER BY p.xID
+
+  -- Get bank IDs for the test
+  SELECT TOP 10 b.xID AS BankaId, b.Nazev, b.banka_kod
+  FROM [Prerelease-2026-5-22-10-33].dbo.c_banky b
+  ORDER BY b.xID
+
+  -- Full picture — inspect sdružení data for a stavba
+  -- Once you pick a STAVBA_ID, use these to see the full state before/after each test:
+
+  -- 1. Sdružení header
+  SELECT sdr.xID, sdr.Znacka, sdr.Nazev, sdr.k_banka, sdr.k_stavba
+  FROM [Prerelease-2026-5-22-10-33].dbo.c_sdruzeni sdr
+  WHERE sdr.k_stavba = 1268
+
+  -- 2. Sdružení members (společnosti)
+  SELECT ss.xID, ss.k_sdruzeni, ss.k_zhotovitel AS PartnerId,
+         z.Nazev AS PartnerNazev, ss.procento_def AS Podil, ss.poradi, ss.obdobi
+  FROM [Prerelease-2026-5-22-10-33].dbo.s_stavby_sdruzeni ss
+  INNER JOIN [Prerelease-2026-5-22-10-33].dbo.c_sdruzeni sdr ON sdr.xID = ss.k_sdruzeni
+  LEFT JOIN [Prerelease-2026-5-22-10-33].dbo.c_partneri z ON z.xID = ss.k_zhotovitel
+  WHERE sdr.k_stavba = 1268
+  ORDER BY ss.poradi
+
+  -- 3. Objects check (should be empty for our test stavba)
+  SELECT COUNT(*) AS ObjectCount
+  FROM [Prerelease-2026-5-22-10-33].dbo.r_objekty
+  WHERE k_stavba = 1268
+
+  -- 4. ZP references (relevant for delete-member validation)
+  SELECT zp.xID, zp.Sdruzeni, zp.k_sdruzeni, obj.k_stavba
+  FROM [Prerelease-2026-5-22-10-33].dbo.p_zp zp
+  INNER JOIN [Prerelease-2026-5-22-10-33].dbo.r_objekty obj ON obj.xID = zp.k_objekt
+  WHERE obj.k_stavba = 1268
+    AND (zp.Sdruzeni = 1 OR zp.k_sdruzeni IS NOT NULL)
+
+
+    -- Quick check after each test
+  SELECT sdr.xID, sdr.Znacka, sdr.Nazev, sdr.k_banka
+  FROM [Prerelease-2026-5-22-10-33].dbo.c_sdruzeni sdr
+  WHERE sdr.k_stavba = 1268
+
+  SELECT ss.xID, ss.k_zhotovitel, z.Nazev, ss.procento_def, ss.poradi
+  FROM [Prerelease-2026-5-22-10-33].dbo.s_stavby_sdruzeni ss
+  INNER JOIN [Prerelease-2026-5-22-10-33].dbo.c_sdruzeni sdr ON sdr.xID = ss.k_sdruzeni
+  LEFT JOIN [Prerelease-2026-5-22-10-33].dbo.c_partneri z ON z.xID = ss.k_zhotovitel
+  WHERE sdr.k_stavba = 1268
+  ORDER BY ss.poradi
+
+
+-------------------x
 !!!!!!!!!!! complete curl testing for all endpoints !!!!!!!!!!!!!!
 We can redirect all curl outputs to files in that folder, and I can read them directly. Here's the approach:
 
