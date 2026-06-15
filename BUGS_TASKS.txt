@@ -1,5 +1,135 @@
 
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/30018/
+Bug 30018: Desktop - admin - práva DMS - nezobrazují se podsložky po rozbalení
+
+"Load bug-30018-dms-subfolders.md and continue fixing the DMS HasChildren bug"
+
+ it is ok now, back to the bug, in wpf repo in the current branch prerelease_30018_ksk_DMSsubfolders in commit fe00c456ed370cb4941953a47ed8c484f312a722 I tried to solve the problem, in
+  other db working fine, but in this database not, pic 2, marked item should have subfolders , it is not possible to click into it, check in db if it is true that it has any subitems, if
+  yes analazy the problem in wpf ui. I am using db MagistratLiberec-2026-6-15-10-59
+
+● Read 1 file (ctrl+o to expand)
+
+● I can see the marked folder "2024_11_15(25M)" — it shows a collapse arrow (▾) as if expanded, but no children appear below it. Let me check the database first.
+
+● Searched for 3 patterns, read 1 file (ctrl+o to expand)
+
+● Now let me query the database to check if "2024_11_15(25M)" has subfolders.
+
+● Bash(sqlcmd -S "localhost\PROCONOMSQL" -d "MagistratLiberec-2026-6-15-10-59" -Q "SELECT xID, Nazev, Pojmenovani, FolderPath, Slozka FROM d_dokumenty WHERE Slozka = 1…)
+  ⎿  Msg 207, Level 16, State 1, Server PC2021-04\PROCONOMSQL, Line 1
+     Invalid column name 'FolderPath'.
+
+● Bash(sqlcmd -S "localhost\PROCONOMSQL" -d "MagistratLiberec-2026-6-15-10-59" -Q "SELECT TOP 1 * FROM d_dokumenty WHERE Slozka = 1" -W -s"|" 2>&1 | head -3)
+  ⎿  xID|nazev|pojmenovani|slozka|folder_path|k_kategorie|k_autor|popis|poznamka_color|id_cizi|fyzicke_umisteni|mistnost|budova|platny|nab_pr_moci|is_system|stav_pristup|k_spisovy_znak|k_
+     lock_user|lock_time|smazano|k_uzivatel_smazal|typ_uzlu|kod_uzlu|external_lock_id|datum_zmeny|is_korespondence|is_pripominky
+     ---|-----|-----------|------|-----------|-----------|-------|-----|--------------|-------|----------------|--------|------|------|-----------|---------|------------|--------------|--
+     … +2 lines (ctrl+o to expand)
+
+● Bash(sqlcmd -S "localhost\PROCONOMSQL" -d "MagistratLiberec-2026-6-15-10-59" -Q "SELECT xID, nazev, pojmenovani, folder_path FROM d_dokumenty WHERE slozka = 1 AND (n…)
+  ⎿  xID|nazev|pojmenovani|folder_path
+     ---|-----|-----------|-----------
+     9520|2024_11_15(25M)|NULL|21\2. Pr�b�h stavby\2.04 Fotodokumentace\Fotodokumentace Objednatel
+     … +2 lines (ctrl+o to expand)
+
+● Found it — folder xID = 9520, name "2024_11_15(25M)". Now let me check if it has any children.
+
+● Bash(sqlcmd -S "localhost\PROCONOMSQL" -d "MagistratLiberec-2026-6-15-10-59" -Q "SELECT xID, nazev, pojmenovani, folder_path, slozka FROM d_dokumenty WHERE folder_pa…)
+  ⎿  xID|nazev|pojmenovani|folder_path|slozka
+     ---|-----|-----------|-----------|------
+     9521|IMG_1512|NULL|21\2. Pr�b�h stavby\2.04 Fotodokumentace\Fotodokumentace Objednatel\2024_11_15(25M)|0
+     … +62 lines (ctrl+o to expand)
+
+● The folder xID = 9520 has 110 children, but all are files (slozka = 0), not subfolders. Let me verify there are truly no subfolders.
+
+● Bash(sqlcmd -S "localhost\PROCONOMSQL" -d "MagistratLiberec-2026-6-15-10-59" -Q "SELECT COUNT(*) as total_children, SUM(CASE WHEN slozka = 1 THEN 1 ELSE 0 END) as su…)
+  ⎿  total_children|subfolder_count|file_count
+     --------------|---------------|----------
+     110|0|110
+     … +2 lines (ctrl+o to expand)
+
+● Bash(sqlcmd -S "localhost\PROCONOMSQL" -d "MagistratLiberec-2026-6-15-10-59" -Q "
+      -- Check: are there subfolders of ANY sibling 2024_ folders under Fotodokumentace O…)
+  ⎿  xID|nazev|slozka|folder_path|smazano
+     ---|-----|------|-----------|-------
+
+     (0 rows affected)
+
+● DB result: Folder "2024_11_15(25M)" (xID=9520) has 110 files but 0 subfolders. In the permissions tree (Nastavení skupin), which only shows folders, there are no children to display. The bug
+   is that the expand arrow is shown when it shouldn't be.
+
+  Now let me look at your commit to understand the current code.
+
+● Bash(cd "C:\Users\karel.skrabal\source\repos\Proconom" && git show fe00c456ed370cb4941953a47ed8c484f312a722 --stat)
+  ⎿  commit fe00c456ed370cb4941953a47ed8c484f312a722
+     Author: Karel Škrabal <skrabal@proconom.cz>
+     Date:   Mon Jun 15 10:46:38 2026 +0200
+     … +6 lines (ctrl+o to expand)
+
+● Bash(cd "C:\Users\karel.skrabal\source\repos\Proconom" && git show fe00c456ed370cb4941953a47ed8c484f312a722)
+  ⎿  commit fe00c456ed370cb4941953a47ed8c484f312a722
+     Author: Karel Škrabal <skrabal@proconom.cz>
+     Date:   Mon Jun 15 10:46:38 2026 +0200
+     … +42 lines (ctrl+o to expand)
+
+● Good, I can see your fix. Now let me understand the full picture — how the tree is built and why the arrow appears for a folder with no subfolders. Let me look at the key files.
+
+● Searched for 3 patterns, read 3 files (ctrl+o to expand)
+
+● Now I see the flow. The key is FolderPermission.HasChildren (line 15 in FolderPermission.cs) — this controls whether the expand arrow shows. It comes from SlozkaPravaDTO.HasChildren set by
+  the API. Let me trace back to the stored procedure to see how HasChildren is calculated.
+
+● Searched for 3 patterns, read 2 files (ctrl+o to expand)
+
+● Found a critical issue. In SlozkaPravaDTO.cs:30:
+
+  .ForMember(d => d.HasChildren, o => o.MapFrom(s => true))
+
+  HasChildren is hardcoded to true for ALL folders! The HasChildResolver exists but isn't wired up. Let me look at the XAML to understand how the tree arrow is controlled and how lazy loading
+  works.
+
+● Searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● Now I have the full picture. Here's the analysis:
+
+  Root Cause
+
+  The bug is in the API, not in the WPF code.
+
+  FILE: TestApi\v1\DTOS\Dokument\SlozkaPravaDTO.cs
+  CLASS: SlozkaPravaDTOProfile
+  LINE: 30
+
+  .ForMember(d => d.HasChildren, o => o.MapFrom(s => true))  // ← HARDCODED to true!
+
+  HasChildren is always set to true for every folder returned by the API. The XAML then uses this value directly:
+
+  <!-- GroupManagerWindow.xaml:867-868 -->
+  <DataTrigger Binding="{Binding HasChildren}" Value="False">
+      <Setter TargetName="Expander" Property="Visibility" Value="Hidden" />
+  </DataTrigger>
+
+  When HasChildren = true, the expand arrow (Expander) is always visible. When user clicks it, LoadFolderData calls the API to fetch subfolder children. For folder "2024_11_15(25M)"
+  (xID=9520), the API returns 0 subfolders (it only has 110 image files), so the tree expands to show nothing.
+
+  The HasChildResolver class already exists at line 36-49 of the same file but is not wired up in the mapping profile.
+
+  Why it works in other databases
+
+  In other databases, folders at this nesting level typically do have subfolders. The hardcoded true accidentally works when folders actually have children. It only breaks for leaf folders
+  (folders containing only files, no subfolders) — like "2024_11_15(25M)" in this MagistratLiberec database.
+
+  Fix
+
+  The fix belongs in the API mapping profile — replace the hardcoded true with an actual check. The HasChildResolver approach or a simpler inline check would work. Want me to look at
+  GetHasSubfolders to see how the existing resolver works, and then propose the exact fix?
+
+✻ Churned for 4m 51s
+
+
+-------------------------------------------------------------------------------------------------------------------------------------
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29566/
 
 User Story 29566: web - přidat do nastavení stavby tabulku se sdružením
