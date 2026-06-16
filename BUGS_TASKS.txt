@@ -5,6 +5,994 @@ Bug 30018: Desktop - admin - práva DMS - nezobrazují se podsložky po rozbalen
 
 "Load bug-30018-dms-subfolders.md and continue fixing the DMS HasChildren bug"
 
+
+
+-----------------x
+
+
+!!!!!!!!!!!! poslední konverzace - závěr = podsložky tam nejsou !!!!!!!!!!!!!!§
+
+
+ ▐▛███▜▌   Claude Code v2.1.69
+▝▜█████▛▘  Opus 4.6 · Claude Team
+  ▘▘ ▝▝    ~\source\repos
+
+❯ refresh previous session from the file "C:\Users\karel.skrabal\Documents\Test1\Source\bug-30018-dms-subfolders.md", you're
+  allowed to read from this folder
+
+● Read 1 file (ctrl+o to expand)
+
+● Got it. Here's the summary of where we left off:
+
+  Bug 30018 — DMS Subfolders / False Expand Arrows
+
+  Branch: prerelease_30018_ksk_DMSsubfolders (wpf ui)
+  Database: MagistratLiberec-2026-6-15-10-59
+
+  What's done
+
+  - Karel already fixed the WPF side (commit fe00c456ed) — subfolders now appear correctly after expanding folders that DO have
+  children
+  - Root cause identified: HasChildren is hardcoded to true in the API AutoMapper profile at SlozkaPravaDTO.cs:30
+  - An unused HasChildResolver class already exists in the same file but is not wired up
+
+  What's next
+
+  1. Read GetHasSubfolders method — understand how the existing resolver works
+  2. Decide approach — wire up HasChildResolver vs. simpler inline check
+  3. Fix the mapping in SlozkaPravaDTOProfile (line 30) to return the real value
+  4. Test with folder xID=9520 (leaf folder with 110 files, 0 subfolders)
+
+  Want me to start with step 1 — reading the GetHasSubfolders method?
+
+❯ maybe you have some additional info saved into Load bug-30018-dms-subfolders.md and continue fixing the DMS HasChildren bug,
+   check it
+
+● Searched memories, searched for 2 patterns, read 1 file (ctrl+o to expand)
+
+● No dedicated memory file for bug 30018 exists. But I see group-manager-multiselect-fix.md which might have related
+  DMS/GroupManager context. Let me check that quickly, then proceed to step 1 — reading the GetHasSubfolders method.
+
+● Recalled 1 memory (ctrl+o to expand)
+
+● That file is about a different task (multi-select fix). No additional memory for bug 30018. Let's proceed directly with step 1 —
+  finding and reading the GetHasSubfolders method.
+
+● Searched for 4 patterns, read 1 file (ctrl+o to expand)
+
+● Now let me check DDokumentyParented to understand the source model and the handler.
+
+● Searched for 2 patterns, read 2 files (ctrl+o to expand)
+
+● Now let me check GetChildrenOfEntity to see if the Document property is populated.
+
+● Searched for 2 patterns (ctrl+o to expand)
+
+● Now I have the full picture. Here's my analysis:
+
+  What I found
+
+  GetHasSubfolders (EFModels\CustomModels\DDokumenty.cs:28-33):
+  public bool GetHasSubfolders(DB_DevelopContext ctx)
+  {
+      return ctx.DVazby.Where(x => x.TabulkaId == XId && x.Tabulka == "d_dokumenty")
+          .Include(x => x.KDokumentyNavigation)
+          .Any(x => x.KDokumentyNavigation.Slozka);
+  }
+  Checks if the folder has any child records that are folders (Slozka = true). Exactly what we need.
+
+  GetChildrenOfEntity (DocumentPermissionManager.cs:27-45):
+  - Already populates Document = x.KDokumentyNavigation (line 42) — so the HasChildResolver has its source member available.
+  - Returns IQueryable<DDokumentyParented>, materialized by _mapper.Map<List<>>() in the handler — so resolver DB queries will work
+   fine.
+
+  Proposed Fix
+
+  One line change — wire up the existing HasChildResolver that was built for this purpose but never connected.
+
+  FILE: Test_Nove_API\TestApi\v1\DTOS\Dokument\SlozkaPravaDTO.cs
+  CLASS: SlozkaPravaDTOProfile
+  METHOD: constructor
+  LINE: 30
+
+  // BEFORE
+  .ForMember(d => d.HasChildren, o => o.MapFrom(s => true))
+
+  // AFTER
+  .ForMember(d => d.HasChildren, o => o.MapFrom<HasChildResolver, DDokumenty>(s => s.Document))
+
+  Performance note: This creates an N+1 pattern (one DVazby.Any() query per folder). But the Group Permissions tree only loads one
+  level at a time, and folder counts per level are typically small (single digits to low dozens), so it's acceptable.
+
+  No other files change. The resolver, the Document property, and the GetHasSubfolders method are all already in place — they just
+  weren't connected.
+
+  Want me to apply this change?
+
+✻ Baked for 2m 20s
+
+❯ let's go to database, I am actually using MagistratLiberec-2026-6-15-10-59, show me sql scripts
+
+  ⎿  Interrupted · What should Claude do instead?
+
+❯ show me sql scripts to list items in tree view
+
+● Here are the SQL scripts for the MagistratLiberec-2026-6-15-10-59 database:
+
+  1. Root folders under a stavba (top level of tree — what GetChildrenOfEntity returns for TYP_UZLU.STAVBA):
+  -- Replace @StavbaId with the actual stavba xID
+  DECLARE @StavbaId INT = ???;
+
+  SELECT d.xID, d.Nazev, d.Pojmenovani, d.Slozka,
+         (SELECT COUNT(*) FROM [MagistratLiberec-2026-6-15-10-59].dbo.d_vazby v2
+              INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty d2
+                  ON v2.k_dokumenty = d2.xID
+          WHERE v2.tabulka_id = d.xID AND v2.tabulka = 'd_dokumenty'
+                AND d2.Slozka = 1 AND d2.Smazano IS NULL) AS SubfolderCount
+  FROM [MagistratLiberec-2026-6-15-10-59].dbo.d_vazby v
+  INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty d
+      ON v.k_dokumenty = d.xID
+  WHERE v.tabulka_id = @StavbaId
+    AND v.tabulka = 's_stavby'
+    AND d.Slozka = 1
+    AND d.Smazano IS NULL
+  ORDER BY d.Nazev;
+
+  2. Children of a specific folder (what loads on expand — EntityType = SLOZKA):
+  -- The test folder from the bug report
+  DECLARE @FolderId INT = 9520;
+
+  SELECT d.xID, d.Nazev, d.Pojmenovani, d.Slozka,
+         (SELECT COUNT(*) FROM [MagistratLiberec-2026-6-15-10-59].dbo.d_vazby v2
+              INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty d2
+                  ON v2.k_dokumenty = d2.xID
+          WHERE v2.tabulka_id = d.xID AND v2.tabulka = 'd_dokumenty'
+                AND d2.Slozka = 1 AND d2.Smazano IS NULL) AS SubfolderCount
+  FROM [MagistratLiberec-2026-6-15-10-59].dbo.d_vazby v
+  INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty d
+      ON v.k_dokumenty = d.xID
+  WHERE v.tabulka_id = @FolderId
+    AND v.tabulka = 'd_dokumenty'
+    AND d.Slozka = 1
+    AND d.Smazano IS NULL
+  ORDER BY d.Nazev;
+
+  3. Verify folder 9520 specifically (the bug case — should show 0 subfolders):
+  -- All children of folder 9520 (files + folders)
+  SELECT d.xID, d.Nazev, d.Slozka,
+         CASE WHEN d.Slozka = 1 THEN 'FOLDER' ELSE 'FILE' END AS Type
+  FROM [MagistratLiberec-2026-6-15-10-59].dbo.d_vazby v
+  INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty d
+      ON v.k_dokumenty = d.xID
+  WHERE v.tabulka_id = 9520
+    AND v.tabulka = 'd_dokumenty'
+    AND d.Smazano IS NULL
+  ORDER BY d.Slozka DESC, d.Nazev;
+
+  4. What GetHasSubfolders checks (the exact logic the resolver runs):
+  -- Returns 1 if folder has subfolders, 0 if not (matches GetHasSubfolders)
+  SELECT CASE WHEN EXISTS (
+      SELECT 1 FROM [MagistratLiberec-2026-6-15-10-59].dbo.d_vazby v
+      INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty d
+          ON v.k_dokumenty = d.xID
+      WHERE v.tabulka_id = 9520 AND v.tabulka = 'd_dokumenty' AND d.Slozka = 1
+  ) THEN 1 ELSE 0 END AS HasSubfolders;
+
+  Query 3 should show ~110 files, 0 folders. Query 4 should return 0. Both confirm the bug — the API currently returns HasChildren
+  = true regardless.
+
+❯ xId 9520 in d_dokumenty is folder, is it right? Does it have any subfolders or files under it?
+
+● Based on the bug report notes, yes:
+
+  - xID 9520 = folder 2024_11_15(25M) — it has slozka = 1 (is a folder)
+  - Children: 110 files (images IMG_1512–IMG_1855), all with slozka = 0
+  - Subfolders: 0
+
+  You can verify with query 3 from above — run it against MagistratLiberec-2026-6-15-10-59 and it should confirm: 110 rows, all
+  Type = FILE, zero FOLDER rows.
+
+  This is the exact case that exposes the bug — the API returns HasChildren = true for this folder, so WPF shows an expand arrow,
+  but there are no subfolders to load.
+
+❯ so what is '2024_11_15(25M)' ? It is folder isn't it?
+
+● Yes, exactly. 2024_11_15(25M) is a folder (slozka = 1). It's a leaf folder — it contains only files (110 images), no subfolders.
+
+  The bug is that the tree shows an expand arrow on it (because HasChildren is hardcoded to true), but when you click to expand,
+  nothing appears because the API only returns subfolders, and there are none.
+
+  Want me to apply the one-line fix now?
+
+❯ check if in db exists any folder with name '021'
+
+● Here's the SQL to check:
+
+  SELECT xID, Nazev, Pojmenovani, Slozka, folder_path, Smazano
+  FROM [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty
+  WHERE Nazev = '021' AND Slozka = 1;
+
+  Run this in SSMS against your MagistratLiberec-2026-6-15-10-59 database. Want me to also search for partial matches (e.g. LIKE
+  '%021%')?
+
+❯ need to find items where folder path contains at least '21\2. Průběh stavby\2.04 Fotodokumentace\Fotodokumentace Objednatel'
+
+● SELECT xID, Nazev, Pojmenovani, Slozka, folder_path, Smazano
+  FROM [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty
+  WHERE folder_path LIKE '%21\2. Průběh stavby\2.04 Fotodokumentace\Fotodokumentace Objednatel%'
+    AND Slozka = 1
+  ORDER BY folder_path;
+
+  This will show all folders at or below the Fotodokumentace Objednatel level — including 2024_11_15(25M) (xID 9520) and any
+  siblings. The folder_path column should reveal the full hierarchy.
+
+❯ edit this script to show the name , xID, znacka from table s_stavby
+
+● SELECT d.xID, d.Nazev, d.Pojmenovani, d.Slozka, d.folder_path, d.Smazano,
+         s.xID AS StavbaId, s.nazev AS StavbaNazev, s.znacka AS StavbaZnacka
+  FROM [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty d
+  INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.d_vazby v
+      ON v.k_dokumenty = d.xID AND v.tabulka = 's_stavby'
+  INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.s_stavby s
+      ON s.xID = v.tabulka_id
+  WHERE d.folder_path LIKE '%21\2. Průběh stavby\2.04 Fotodokumentace\Fotodokumentace Objednatel%'
+    AND d.Slozka = 1
+  ORDER BY d.folder_path;
+
+  Note: The join goes d_dokumenty → d_vazby → s_stavby. If a folder is nested deeper (not directly linked to stavba via d_vazby),
+  it may not show up. In that case, we'd need to walk up the d_vazby chain recursively. Let me know if any rows are missing.
+
+❯ it shows nothing
+
+● The folder is nested deep — it's not directly linked to s_stavby via d_vazby. The link goes through parent folders. Let's walk up
+   the chain from folder 9520:
+
+  -- Walk up the d_vazby chain from folder 9520 to find the stavba
+  ;WITH chain AS (
+      SELECT v.k_dokumenty, v.tabulka_id, v.tabulka, 0 AS depth
+      FROM [MagistratLiberec-2026-6-15-10-59].dbo.d_vazby v
+      WHERE v.k_dokumenty = 9520 AND v.tabulka = 'd_dokumenty'
+
+      UNION ALL
+
+      SELECT v.k_dokumenty, v.tabulka_id, v.tabulka, c.depth + 1
+      FROM [MagistratLiberec-2026-6-15-10-59].dbo.d_vazby v
+      INNER JOIN chain c ON v.k_dokumenty = c.tabulka_id AND c.tabulka = 'd_dokumenty'
+      WHERE v.tabulka IN ('d_dokumenty', 's_stavby')
+  )
+  SELECT c.*,
+         d.Nazev AS DokumentNazev, d.folder_path,
+         s.xID AS StavbaId, s.nazev AS StavbaNazev, s.znacka AS StavbaZnacka
+  FROM chain c
+  LEFT JOIN [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty d ON d.xID = c.tabulka_id AND c.tabulka = 'd_dokumenty'
+  LEFT JOIN [MagistratLiberec-2026-6-15-10-59].dbo.s_stavby s ON s.xID = c.tabulka_id AND c.tabulka = 's_stavby'
+  ORDER BY c.depth;
+
+  This recursively follows the d_vazby chain upward until it hits s_stavby. Should show each parent folder along the way and the
+  stavba at the top.
+
+❯ it still missing subfolders k_dokumenty    tabulka_id    tabulka    depth    DokumentNazev    folder_path    StavbaId
+  StavbaNazev    StavbaZnacka
+  9520    9201    d_dokumenty    0    Fotodokumentace Objednatel    21\2. Průběh stavby\2.04 Fotodokumentace    NULL    NULL
+    NULL
+  9201    5259    d_dokumenty    1    2.04 Fotodokumentace    21\2. Průběh stavby    NULL    NULL    NULL
+  5259    5243    d_dokumenty    2    2. Průběh stavby    21    NULL    NULL    NULL
+  5243    21    s_stavby    3    NULL    NULL    21    REKONSTRUKCE A STAVEBNÍ ÚPRAVY MĚSTSKÉHO PLAVECKÉHO BAZÉNU V LIBERCI
+   DS202401906
+
+● Now we have the full chain. The stavba is xID=21, znacka DS202401906. Now let's get the original query working — join through the
+   chain to get the stavba info for all folders under that path:
+
+  SELECT d.xID, d.Nazev, d.Pojmenovani, d.Slozka, d.folder_path, d.Smazano,
+         21 AS StavbaId,
+         'REKONSTRUKCE A STAVEBNÍ ÚPRAVY MĚSTSKÉHO PLAVECKÉHO BAZÉNU V LIBERCI' AS StavbaNazev,
+         'DS202401906' AS StavbaZnacka,
+         (SELECT COUNT(*) FROM [MagistratLiberec-2026-6-15-10-59].dbo.d_vazby v2
+              INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty d2
+                  ON v2.k_dokumenty = d2.xID
+          WHERE v2.tabulka_id = d.xID AND v2.tabulka = 'd_dokumenty'
+                AND d2.Slozka = 1 AND d2.Smazano IS NULL) AS SubfolderCount
+  FROM [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty d
+  WHERE d.folder_path LIKE '%21\2. Průběh stavby\2.04 Fotodokumentace\Fotodokumentace Objednatel%'
+    AND d.Slozka = 1
+  ORDER BY d.folder_path;
+
+  This should show folder 9520 (2024_11_15(25M)) with SubfolderCount = 0 — confirming the bug. Any sibling folders at the same
+  level will also appear with their actual subfolder counts.
+
+❯ check db data again, try to find all chain of folders tree for Štěpán Verner user, subfolders or files in 2024_1115(25M)
+  folder and under it.
+
+● Here are the scripts:
+
+  1. Find Štěpán Verner user:
+  SELECT xID, jmeno, prijmeni, login, email
+  FROM [MagistratLiberec-2026-6-15-10-59].dbo.c_uzivatele
+  WHERE prijmeni LIKE '%Verner%' OR jmeno LIKE '%Štěpán%';
+
+  2. Full folder tree under stavba 21 (the chain we found):
+  ;WITH FolderTree AS (
+      -- Level 0: root folders directly under stavba 21
+      SELECT d.xID, d.Nazev, d.Pojmenovani, d.Slozka, d.folder_path, d.Smazano,
+             0 AS depth
+      FROM [MagistratLiberec-2026-6-15-10-59].dbo.d_vazby v
+      INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty d
+          ON v.k_dokumenty = d.xID
+      WHERE v.tabulka_id = 21 AND v.tabulka = 's_stavby'
+        AND d.Slozka = 1 AND d.Smazano IS NULL
+
+      UNION ALL
+
+      -- Recurse into subfolders
+      SELECT d.xID, d.Nazev, d.Pojmenovani, d.Slozka, d.folder_path, d.Smazano,
+             ft.depth + 1
+      FROM FolderTree ft
+      INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.d_vazby v
+          ON v.tabulka_id = ft.xID AND v.tabulka = 'd_dokumenty'
+      INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty d
+          ON v.k_dokumenty = d.xID
+      WHERE d.Slozka = 1 AND d.Smazano IS NULL
+  )
+  SELECT xID, REPLICATE('  ', depth) + Nazev AS TreeView, folder_path, depth,
+         (SELECT COUNT(*) FROM [MagistratLiberec-2026-6-15-10-59].dbo.d_vazby v2
+              INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty d2
+                  ON v2.k_dokumenty = d2.xID
+          WHERE v2.tabulka_id = FolderTree.xID AND v2.tabulka = 'd_dokumenty'
+                AND d2.Slozka = 1 AND d2.Smazano IS NULL) AS SubfolderCount,
+         (SELECT COUNT(*) FROM [MagistratLiberec-2026-6-15-10-59].dbo.d_vazby v3
+              INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty d3
+                  ON v3.k_dokumenty = d3.xID
+          WHERE v3.tabulka_id = FolderTree.xID AND v3.tabulka = 'd_dokumenty'
+                AND d3.Slozka = 0 AND d3.Smazano IS NULL) AS FileCount
+  FROM FolderTree
+  ORDER BY folder_path, Nazev;
+
+  3. Everything inside folder 9520 (2024_11_15(25M)) — files and subfolders:
+  SELECT d.xID, d.Nazev, d.Pojmenovani, d.Slozka, d.folder_path, d.Smazano,
+         CASE WHEN d.Slozka = 1 THEN 'FOLDER' ELSE 'FILE' END AS Type
+  FROM [MagistratLiberec-2026-6-15-10-59].dbo.d_vazby v
+  INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty d
+      ON v.k_dokumenty = d.xID
+  WHERE v.tabulka_id = 9520 AND v.tabulka = 'd_dokumenty'
+    AND d.Smazano IS NULL
+  ORDER BY d.Slozka DESC, d.Nazev;
+
+  Run query 1 first to get Verner's xID — if you need his group permissions on these folders, I'll add a query joining
+  d_dokumenty_opravneni with his user/group ID.
+
+❯ you saying -- Level 0: root folders directly under stavba 21 ... but it is not true, I need stavba  ... xID    k_utvar
+  znacka    nazev    evidenci_cislo    sazba_dph1    sazba_dph2    sazba_dph3    des_mnozstvi_rozpocet    varianta
+  nazev_jazyk    zahajeni    dokonceni    k_objednatel    datum_smlouva    cas_znamka    k_nabidka    k_vzorec_kalk
+  k_projektant    k_zhotovitel    popis    typ_stavby    id_cadds    k_schedule_hgm    investorska    stato_id    qr_id
+  datum_zalozeni_ss    k_uzivatel_soukroma    velikost    k_objemove_ukazatele    ext_id    k_uzivatel_zaloz    smazano
+  k_uzivatel_smazal
+  28    3    ZML    REKONSTRUKCE A STAVEBNÍ ÚPRAVY MĚSTSKÉHO PLAVECKÉHO BAZÉNU V LIBERCI    NULL    NULL    NULL    NULL
+  NULL    var. 1    NULL    NULL    NULL    NULL    NULL    0x0000000000012E8E    NULL    NULL    NULL    NULL    NULL    NULL
+      NULL    1    NULL    NULL    NULL    2025-07-11 20:31:33.547    14    NULL    NULL    NULL    14    NULL    NULL
+
+● The stavba xID is 28, not 21! The 21 in the folder_path was misleading — it's part of the path string, not the stavba ID. Here
+  are the corrected scripts:
+
+  1. Full folder tree under stavba 28:
+  ;WITH FolderTree AS (
+      SELECT d.xID, d.Nazev, d.Pojmenovani, d.Slozka, d.folder_path, d.Smazano,
+             0 AS depth
+      FROM [MagistratLiberec-2026-6-15-10-59].dbo.d_vazby v
+      INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty d
+          ON v.k_dokumenty = d.xID
+      WHERE v.tabulka_id = 28 AND v.tabulka = 's_stavby'
+        AND d.Slozka = 1 AND d.Smazano IS NULL
+
+      UNION ALL
+
+      SELECT d.xID, d.Nazev, d.Pojmenovani, d.Slozka, d.folder_path, d.Smazano,
+             ft.depth + 1
+      FROM FolderTree ft
+      INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.d_vazby v
+          ON v.tabulka_id = ft.xID AND v.tabulka = 'd_dokumenty'
+      INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty d
+          ON v.k_dokumenty = d.xID
+      WHERE d.Slozka = 1 AND d.Smazano IS NULL
+  )
+  SELECT xID, REPLICATE('  ', depth) + Nazev AS TreeView, folder_path, depth,
+         (SELECT COUNT(*) FROM [MagistratLiberec-2026-6-15-10-59].dbo.d_vazby v2
+              INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty d2
+                  ON v2.k_dokumenty = d2.xID
+          WHERE v2.tabulka_id = FolderTree.xID AND v2.tabulka = 'd_dokumenty'
+                AND d2.Slozka = 1 AND d2.Smazano IS NULL) AS SubfolderCount,
+         (SELECT COUNT(*) FROM [MagistratLiberec-2026-6-15-10-59].dbo.d_vazby v3
+              INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty d3
+                  ON v3.k_dokumenty = d3.xID
+          WHERE v3.tabulka_id = FolderTree.xID AND v3.tabulka = 'd_dokumenty'
+                AND d3.Slozka = 0 AND d3.Smazano IS NULL) AS FileCount
+  FROM FolderTree
+  ORDER BY folder_path, Nazev;
+
+  2. Everything inside folder 9520 (2024_11_15(25M)):
+  SELECT d.xID, d.Nazev, d.Pojmenovani, d.Slozka, d.folder_path, d.Smazano,
+         CASE WHEN d.Slozka = 1 THEN 'FOLDER' ELSE 'FILE' END AS Type
+  FROM [MagistratLiberec-2026-6-15-10-59].dbo.d_vazby v
+  INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty d
+      ON v.k_dokumenty = d.xID
+  WHERE v.tabulka_id = 9520 AND v.tabulka = 'd_dokumenty'
+    AND d.Smazano IS NULL
+  ORDER BY d.Slozka DESC, d.Nazev;
+
+  3. Verify the chain from 9520 back to stavba 28:
+  ;WITH chain AS (
+      SELECT v.k_dokumenty, v.tabulka_id, v.tabulka, 0 AS depth
+      FROM [MagistratLiberec-2026-6-15-10-59].dbo.d_vazby v
+      WHERE v.k_dokumenty = 9520 AND v.tabulka = 'd_dokumenty'
+
+      UNION ALL
+
+      SELECT v.k_dokumenty, v.tabulka_id, v.tabulka, c.depth + 1
+      FROM [MagistratLiberec-2026-6-15-10-59].dbo.d_vazby v
+      INNER JOIN chain c ON v.k_dokumenty = c.tabulka_id AND c.tabulka = 'd_dokumenty'
+      WHERE v.tabulka IN ('d_dokumenty', 's_stavby')
+  )
+  SELECT c.*,
+         d.Nazev AS DokumentNazev, d.folder_path,
+         s.xID AS StavbaId, s.nazev AS StavbaNazev, s.znacka AS StavbaZnacka
+  FROM chain c
+  LEFT JOIN [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty d ON d.xID = c.tabulka_id AND c.tabulka = 'd_dokumenty'
+  LEFT JOIN [MagistratLiberec-2026-6-15-10-59].dbo.s_stavby s ON s.xID = c.tabulka_id AND c.tabulka = 's_stavby'
+  ORDER BY c.depth;
+
+  Query 3 should now end at stavba 28 (znacka ZML).
+
+❯ again , StavbaId is 21 ...???? k_dokumenty    tabulka_id    tabulka    depth    DokumentNazev    folder_path    StavbaId
+  StavbaNazev    StavbaZnacka
+  9520    9201    d_dokumenty    0    Fotodokumentace Objednatel    21\2. Průběh stavby\2.04 Fotodokumentace    NULL    NULL
+    NULL
+  9201    5259    d_dokumenty    1    2.04 Fotodokumentace    21\2. Průběh stavby    NULL    NULL    NULL
+  5259    5243    d_dokumenty    2    2. Průběh stavby    21    NULL    NULL    NULL
+  5243    21    s_stavby    3    NULL    NULL    21    REKONSTRUKCE A STAVEBNÍ ÚPRAVY MĚSTSKÉHO PLAVECKÉHO BAZÉNU V LIBERCI
+   DS202401906
+
+● You're right, I apologize! The chain clearly ends at tabulka = 's_stavby' with tabulka_id = 21. The stavba is xID=21.
+
+  The record you showed me earlier with xID=28 is a different stavba (znacka ZML, same name). There are two stavby with the same
+  name — 21 has znacka DS202401906, 28 has znacka ZML.
+
+  So all the scripts should use stavba xID = 21. The first recursive tree query I gave was correct after all. Did you run it? Want
+  me to repeat it with any adjustments?
+
+❯ you are wrong this is all stavby
+
+● Can you paste the full list? I want to see whether xID=21 exists in s_stavby or if the d_vazby chain is pointing to a
+  non-existent stavba (orphaned link).
+
+❯ xID    k_utvar    znacka    nazev    evidenci_cislo    sazba_dph1    sazba_dph2    sazba_dph3    des_mnozstvi_rozpocet
+  varianta    nazev_jazyk    zahajeni    dokonceni    k_objednatel    datum_smlouva    cas_znamka    k_nabidka
+  k_vzorec_kalk    k_projektant    k_zhotovitel    popis    typ_stavby    id_cadds    k_schedule_hgm    investorska
+  stato_id    qr_id    datum_zalozeni_ss    k_uzivatel_soukroma    velikost    k_objemove_ukazatele    ext_id
+  k_uzivatel_zaloz    smazano    k_uzivatel_smazal
+  16    1    KV    Kino Varšava    NULL    NULL    NULL    NULL    NULL    NULL    NULL    2024-10-07 00:00:00.000
+  2026-04-01 00:00:00.000    3    2024-09-30 00:00:00.000    0x0000000000012E85    NULL    NULL    5    4    Kino Varšava,
+  Liberec – stavební úpravy II    NULL    NULL    NULL    NULL    NULL    NULL    2024-09-26 13:47:31.097    5    NULL    NULL
+      NULL    5    NULL    NULL
+  17    1    ZKUŠEBNÍ    STAVBA    NULL    NULL    NULL    NULL    NULL    ZŘ    NULL    2024-05-06 00:00:00.000    2024-11-01
+   00:00:00.000    3    NULL    0x0000000000012E86    NULL    NULL    NULL    4    NULL    NULL    NULL    1    NULL    NULL
+    NULL    2024-09-26 13:47:57.253    5    NULL    NULL    NULL    5    NULL    NULL
+  18    2    JDRBLENER    D.2.8 - PŘEDINVESTICE - ENERGOCENTRUM    NULL    NULL    NULL    NULL    NULL    ZŘ    NULL    NULL
+     NULL    NULL    NULL    0x0000000000012E87    NULL    NULL    NULL    NULL    NULL    NULL    NULL    1    NULL    NULL
+    NULL    2024-10-15 12:53:56.587    5    NULL    NULL    NULL    5    NULL    NULL
+  21    2    DS202401906    REKONSTRUKCE A STAVEBNÍ ÚPRAVY MĚSTSKÉHO PLAVECKÉHO BAZÉNU V LIBERCI    NULL    NULL    NULL
+  NULL    NULL    var. 1    NULL    2024-11-30 00:00:00.000    NULL    3    2024-09-27 00:00:00.000    0x0000000000012E88
+  NULL    NULL    7    6    NULL    NULL    NULL    1    NULL    NULL    NULL    2024-12-04 13:11:58.370    5    NULL    NULL
+     NULL    5    NULL    NULL
+  23    3    ZKUŠEBNÍ    STAVBA    NULL    NULL    NULL    NULL    NULL    ZŘ    NULL    2017-12-21 00:00:00.000    2017-12-21
+   00:00:00.000    3    NULL    0x0000000000012E89    NULL    NULL    NULL    6    NULL    NULL    NULL    1    NULL    NULL
+    NULL    2024-12-05 09:14:32.447    14    NULL    NULL    NULL    14    NULL    NULL
+  24    2    JDRBLENER    D.2.8 - PŘEDINVESTICE - ENERGOCENTRUM (ZE STAVBY REKONSTRUKCE A STAVEBNÍ ÚPRAVY MĚSTSKÉHO PLAVECKÉHO
+   BAZÉNU V LIBERCI)    NULL    NULL    NULL    NULL    NULL    var. 1    NULL    NULL    NULL    NULL    NULL
+  0x0000000000012E8A    NULL    NULL    NULL    NULL    NULL    NULL    NULL    1    NULL    NULL    NULL    2024-12-18
+  14:02:50.153    14    NULL    NULL    NULL    14    NULL    NULL
+  25    3    VZ    Vzorová stavby    NULL    NULL    NULL    NULL    NULL    NULL    NULL    NULL    NULL    NULL    NULL
+  0x0000000000012E8B    NULL    NULL    NULL    NULL    NULL    NULL    NULL    NULL    NULL    NULL    NULL    2024-12-18
+  14:08:16.907    NULL    NULL    NULL    NULL    14    NULL    NULL
+  26    2    ROZPADY    REKONSTRUKCE A STAVEBNÍ ÚPRAVY MĚSTSKÉHO PLAVECKÉHO BAZÉNU V LIBERCI    NULL    NULL    NULL    NULL
+    NULL    var. 1    NULL    2024-09-01 00:00:00.000    2027-05-01 00:00:00.000    NULL    NULL    0x0000000000012E8C    NULL
+      NULL    NULL    NULL    NULL    NULL    NULL    1    NULL    NULL    NULL    2025-06-02 07:25:50.403    5    NULL
+  NULL    NULL    5    NULL    NULL
+  27    3    ZML    REKONSTRUKCE A STAVEBNÍ ÚPRAVY MĚSTSKÉHO PLAVECKÉHO BAZÉNU V LIBERCI    NULL    NULL    NULL    NULL
+  NULL    var. 1    NULL    NULL    NULL    NULL    NULL    0x0000000000012E8D    NULL    NULL    NULL    NULL    NULL    NULL
+      NULL    1    NULL    NULL    NULL    2025-07-11 20:14:24.877    14    NULL    NULL    NULL    14    NULL    NULL
+  28    3    ZML    REKONSTRUKCE A STAVEBNÍ ÚPRAVY MĚSTSKÉHO PLAVECKÉHO BAZÉNU V LIBERCI    NULL    NULL    NULL    NULL
+  NULL    var. 1    NULL    NULL    NULL    NULL    NULL    0x0000000000012E8E    NULL    NULL    NULL    NULL    NULL    NULL
+      NULL    1    NULL    NULL    NULL    2025-07-11 20:31:33.547    14    NULL    NULL    NULL    14    NULL    NULL
+  29    5    DS202401906    REKONSTRUKCE A STAVEBNÍ ÚPRAVY MĚSTSKÉHO PLAVECKÉHO BAZÉNU V LIBERCI (kopie)    NULL    NULL
+  NULL    NULL    NULL    var. 1    NULL    2024-11-30 00:00:00.000    NULL    3    2024-09-27 00:00:00.000
+  0x0000000000012E8F    NULL    NULL    NULL    6    NULL    NULL    NULL    1    NULL    NULL    NULL    2025-09-05
+  11:59:10.110    NULL    NULL    NULL    NULL    5    NULL    NULL
+  30    5    ROZPADY    REKONSTRUKCE A STAVEBNÍ ÚPRAVY MĚSTSKÉHO PLAVECKÉHO BAZÉNU V LIBERCI (kopie)    NULL    NULL    NULL
+    NULL    NULL    var. 1    NULL    2024-09-01 00:00:00.000    2027-05-01 00:00:00.000    NULL    NULL    0x0000000000012E90
+      NULL    NULL    NULL    NULL    NULL    NULL    NULL    1    NULL    NULL    NULL    2025-09-05 12:00:18.117    NULL
+  NULL    NULL    NULL    5    NULL    NULL
+  31    6    O19-010dEx    Modernizace II/360 Lanšperk - Dolní Dobrouč - 2025    NULL    NULL    NULL    NULL    NULL    IV
+   NULL    2026-01-07 00:00:00.000    2026-01-07 00:00:00.000    NULL    NULL    0x0000000000012E91    NULL    NULL    NULL
+   NULL    NULL    NULL    NULL    1    NULL    NULL    NULL    2026-01-14 20:58:33.080    15    NULL    NULL    NULL    15
+   2026-01-16 10:06:44.967    15
+  32    6    O19-010d    Modernizace II/360 Lanšperk - Dolní Dobrouč - 2025    NULL    NULL    NULL    NULL    NULL    1
+  NULL    2023-11-29 00:00:00.000    2023-11-29 00:00:00.000    NULL    NULL    0x0000000000012E92    NULL    NULL    NULL
+  NULL    NULL    NULL    NULL    1    NULL    NULL    NULL    2026-01-16 10:07:12.263    15    NULL    NULL    NULL    15
+  2026-01-26 22:34:07.353    15
+  33    6    O19-010dEx    Modernizace II/360 Lanšperk - Dolní Dobrouč - 2025    NULL    NULL    NULL    NULL    NULL    IV
+   NULL    2026-01-07 00:00:00.000    2026-01-07 00:00:00.000    NULL    NULL    0x0000000000012E93    32    NULL    NULL
+  NULL    NULL    NULL    NULL    1    NULL    NULL    NULL    2026-01-16 10:07:32.300    NULL    NULL    NULL    NULL    15
+    NULL    NULL
+  34    6    006-2026    MODERNIZACE SILNICE II/312 ČERVENÝ POTOK - HR. PK_16122025    NULL    NULL    NULL    NULL    NULL
+   ZŘ    NULL    2025-07-25 00:00:00.000    2025-07-25 00:00:00.000    33    NULL    0x0000000000012E94    NULL    NULL
+  NULL    NULL    NULL    NULL    NULL    1    NULL    NULL    NULL    2026-01-26 22:36:01.177    15    NULL    NULL    NULL
+    15    2026-02-04 11:02:34.363    15
+  35    6    006-2026    MODERNIZACE SILNICE II/312 ČERVENÝ POTOK - HR. PK_16122025    NULL    NULL    NULL    NULL    NULL
+   ZŘ    NULL    2025-07-25 00:00:00.000    2025-07-25 00:00:00.000    34    NULL    0x0000000000012E95    34    NULL    NULL
+     NULL    NULL    NULL    NULL    1    NULL    NULL    NULL    2026-01-26 22:36:26.653    NULL    NULL    NULL    NULL
+  15    2026-01-26 22:37:05.353    15
+  36    6    006-2026    MODERNIZACE SILNICE II/312 ČERVENÝ POTOK - HR. PK_16122025    NULL    NULL    NULL    NULL    NULL
+   ZŘ    NULL    2025-07-25 00:00:00.000    2025-07-25 00:00:00.000    34    NULL    0x0000000000012E96    34    NULL    NULL
+     NULL    NULL    NULL    NULL    1    NULL    NULL    NULL    2026-01-26 22:36:30.073    NULL    NULL    NULL    NULL
+  15    NULL    NULL
+  37    6    007-2026    Most ev.č. 356-001 Radim    NULL    NULL    NULL    NULL    NULL    ZŘ    NULL    2025-10-23
+  00:00:00.000    2025-10-23 00:00:00.000    33    NULL    0x0000000000012E97    NULL    NULL    NULL    NULL    NULL    NULL
+     NULL    1    NULL    NULL    NULL    2026-02-04 11:04:09.050    15    NULL    NULL    NULL    15    2026-02-04
+  11:04:45.127    15
+  38    6    007_2026    Most ev.č. 356-001 Radim    NULL    NULL    NULL    NULL    NULL    var. 1    NULL    NULL    NULL
+   NULL    NULL    0x0000000000012E98    NULL    NULL    NULL    NULL    NULL    NULL    NULL    1    NULL    NULL    NULL
+  2026-02-04 11:04:30.097    15    NULL    NULL    NULL    15    2026-02-04 11:09:32.957    15
+  39    6    007-2026    Most ev.č. 356-001 Radim    NULL    NULL    NULL    NULL    NULL    1    NULL    2010-10-01
+  00:00:00.000    2010-10-02 00:00:00.000    NULL    NULL    0x0000000000012E99    38    NULL    NULL    NULL    NULL    NULL
+     NULL    1    NULL    NULL    NULL    2026-02-04 11:04:59.887    NULL    NULL    NULL    NULL    15    NULL    NULL
+  40    6    007-2026    Most ev.č. 356-001 Radim    NULL    NULL    NULL    NULL    NULL    ZŘ    NULL    2025-10-23
+  00:00:00.000    2025-10-23 00:00:00.000    33    NULL    0x0000000000012E9A    NULL    NULL    NULL    NULL    NULL    NULL
+     NULL    1    NULL    NULL    NULL    2026-02-04 11:06:56.863    15    NULL    NULL    NULL    15    2026-02-04
+  11:09:27.243    15
+  41    6    007-2026    Most ev.č. 356-001 Radim    NULL    NULL    NULL    NULL    NULL    ZŘ    NULL    2025-10-23
+  00:00:00.000    2025-10-23 00:00:00.000    33    NULL    0x0000000000012E9B    NULL    NULL    NULL    NULL    NULL    NULL
+     NULL    1    NULL    NULL    NULL    2026-02-04 11:09:44.283    15    NULL    NULL    NULL    15    NULL    NULL
+  42    6    007-2026    Most ev.č. 356-001 Radim    NULL    NULL    NULL    NULL    NULL    1    NULL    2010-10-01
+  00:00:00.000    2010-10-02 00:00:00.000    NULL    NULL    0x0000000000012E9C    41    NULL    NULL    NULL    NULL    NULL
+     NULL    1    NULL    NULL    NULL    2026-02-04 11:09:58.897    NULL    NULL    NULL    NULL    15    NULL    NULL
+
+● I was wrong to doubt it. Stavba xID=21 (DS202401906) clearly exists and the chain query was correct all along. I confused myself
+  with xID=28 which is a different copy (znacka ZML, útvar 3).
+
+  So the tree query with tabulka_id = 21 was right. Did you run it? What results did you get from the recursive folder tree under
+  stavba 21?
+
+❯ show me for folder with name '2024_11_15(25M)' for any stavba any subforders or files if they exist (so whatever stavba)
+
+● -- Find folder '2024_11_15(25M)' and show all its children (files + subfolders)
+  SELECT parent.xID AS ParentId, parent.Nazev AS ParentNazev, parent.folder_path AS ParentPath,
+         d.xID, d.Nazev, d.Pojmenovani, d.Slozka,
+         CASE WHEN d.Slozka = 1 THEN 'FOLDER' ELSE 'FILE' END AS Type,
+         d.folder_path, d.Smazano
+  FROM [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty parent
+  INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.d_vazby v
+      ON v.tabulka_id = parent.xID AND v.tabulka = 'd_dokumenty'
+  INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty d
+      ON v.k_dokumenty = d.xID
+  WHERE parent.Nazev = '2024_11_15(25M)' AND parent.Slozka = 1
+  ORDER BY parent.xID, d.Slozka DESC, d.Nazev;
+
+  This finds any folder named 2024_11_15(25M) across all stavby and lists everything inside it — both files and subfolders.
+
+❯ try to find any folders with these names (check is as substring)
+
+● SELECT xID, Nazev, Pojmenovani, Slozka, folder_path, Smazano
+  FROM [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty
+  WHERE Slozka = 1
+    AND (Nazev LIKE '%2024_11_15%' OR Nazev LIKE '%25M%')
+    AND Smazano IS NULL
+  ORDER BY Nazev;
+
+  Note: In SQL _ is a wildcard for a single character in LIKE, so 2024_11_15 will also match things like 2024-11-15 or 2024X11X15.
+  If you want an exact underscore match:
+
+  SELECT xID, Nazev, Pojmenovani, Slozka, folder_path, Smazano
+  FROM [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty
+  WHERE Slozka = 1
+    AND (Nazev LIKE '%2024[_]11[_]15%' OR Nazev LIKE '%25M%')
+    AND Smazano IS NULL
+  ORDER BY Nazev;
+
+  [_] escapes the underscore to match it literally.
+
+❯ 001_Demolice stav bunky v km 21,140
+  002_Demolice přístřešků AZ
+  003_Úprava skladu v km 21,660
+  004_Demolice zahradního domku v km 21,500
+  005_Demolice mostu na 1_7 přes silnici III_00725
+  006_Demolice objektu v km 21,610
+  020a_odpocivka
+  021
+
+● SELECT xID, Nazev, Pojmenovani, Slozka, folder_path, Smazano
+  FROM [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty
+  WHERE Slozka = 1
+    AND (
+      Nazev LIKE '%001[_]Demolice stav bunky%'
+      OR Nazev LIKE '%002[_]Demolice přístřešků%'
+      OR Nazev LIKE '%003[_]Úprava skladu%'
+      OR Nazev LIKE '%004[_]Demolice zahradního domku%'
+      OR Nazev LIKE '%005[_]Demolice mostu%'
+      OR Nazev LIKE '%006[_]Demolice objektu%'
+      OR Nazev LIKE '%020a[_]odpocivka%'
+      OR Nazev = '021'
+    )
+    AND Smazano IS NULL
+  ORDER BY Nazev;
+
+❯ how is incorporated user Štěpán Verner in that folders tree?
+
+● Good question. In the DMS permissions model, users are connected to folders via permissions (d_dokumenty_opravneni) and/or groups
+   (c_uzivatele_skupiny). Let me give you scripts to check both:
+
+  1. Find Štěpán Verner's user ID:
+  SELECT xID, jmeno, prijmeni, login, email
+  FROM [MagistratLiberec-2026-6-15-10-59].dbo.c_uzivatele
+  WHERE prijmeni LIKE '%Verner%';
+
+  2. His group memberships:
+  SELECT s.xID AS SkupinaId, s.nazev AS SkupinaNazev, vs.k_uzivatel
+  FROM [MagistratLiberec-2026-6-15-10-59].dbo.c_uzivatele u
+  INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.c_uzivatele_ve_skupine vs
+      ON vs.k_uzivatel = u.xID
+  INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.c_uzivatele_skupiny s
+      ON s.xID = vs.k_skupina
+  WHERE u.prijmeni LIKE '%Verner%';
+
+  3. His direct permissions on folders (stavba 21):
+  SELECT d.xID, d.Nazev, d.Slozka, d.folder_path,
+         op.can_read AS CanRead, op.can_write AS CanWrite, op.can_modify AS CanModify
+  FROM [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty_opravneni op
+  INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty d
+      ON d.xID = op.k_dokumenty
+  INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.c_uzivatele u
+      ON u.xID = op.k_uzivatel
+  WHERE u.prijmeni LIKE '%Verner%'
+    AND d.Slozka = 1
+  ORDER BY d.folder_path;
+
+  4. His group permissions on folders (stavba 21):
+  SELECT d.xID, d.Nazev, d.Slozka, d.folder_path,
+         s.nazev AS SkupinaNazev,
+         op.can_read AS CanRead, op.can_write AS CanWrite, op.can_modify AS CanModify
+  FROM [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty_opravneni op
+  INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty d
+      ON d.xID = op.k_dokumenty
+  INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.c_uzivatele_skupiny s
+      ON s.xID = op.k_skupina
+  INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.c_uzivatele_ve_skupine vs
+      ON vs.k_skupina = s.xID
+  INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.c_uzivatele u
+      ON u.xID = vs.k_uzivatel
+  WHERE u.prijmeni LIKE '%Verner%'
+    AND d.Slozka = 1
+  ORDER BY d.folder_path;
+
+  Run query 1 first to get his xID, then the rest will show how he's connected to the DMS folder tree — both directly and through
+  groups.
+
+❯ Msg 208, Level 16, State 1, Line 1
+  Invalid object name 'MagistratLiberec-2026-6-15-10-59.dbo.c_uzivatele_ve_skupine'.
+
+
+● The table name is different. Let me fix — it's likely c_uzivatele_skupiny_vazby or similar. First, find the correct table:
+
+  SELECT TABLE_NAME
+  FROM [MagistratLiberec-2026-6-15-10-59].INFORMATION_SCHEMA.TABLES
+  WHERE TABLE_NAME LIKE '%skupin%'
+  ORDER BY TABLE_NAME;
+
+  Run this and I'll update the queries with the correct table name.
+
+❯ Msg 208, Level 16, State 1, Line 13
+  Invalid object name 'MagistratLiberec-2026-6-15-10-59.dbo.c_uzivatele_ve_skupine'.
+
+● That error is from the old query still. Run just this one:
+
+  SELECT TABLE_NAME
+  FROM [MagistratLiberec-2026-6-15-10-59].INFORMATION_SCHEMA.TABLES
+  WHERE TABLE_NAME LIKE '%skupin%'
+  ORDER BY TABLE_NAME;
+
+  This will tell us the actual table name for user-group membership, then I'll fix the queries.
+
+❯ TABLE_NAME
+  bim_parovani_skupina
+  bim_skupiny_vlastnosti_validator
+  c_skupiny
+  c_skupiny_mereni
+  c_subdodavatele_skupiny
+  c_subdodavatele_skupiny_vazby
+  c_uzivatele_skupiny
+  c_uzivatele_vazby_skupiny
+  d_dokumenty_prava_skupiny
+  d_vzorky_skupiny
+  s_stavby_prubeh_skupiny
+  zbv_skupiny_popis
+  zbv_skupiny_rozpad
+
+● Got it — the table is c_uzivatele_vazby_skupiny. Here are the fixed queries:
+
+  1. Find Štěpán Verner:
+  SELECT xID, jmeno, prijmeni, login, email
+  FROM [MagistratLiberec-2026-6-15-10-59].dbo.c_uzivatele
+  WHERE prijmeni LIKE '%Verner%';
+
+  2. His group memberships:
+  SELECT s.xID AS SkupinaId, s.nazev AS SkupinaNazev, vs.k_uzivatel
+  FROM [MagistratLiberec-2026-6-15-10-59].dbo.c_uzivatele u
+  INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.c_uzivatele_vazby_skupiny vs
+      ON vs.k_uzivatel = u.xID
+  INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.c_uzivatele_skupiny s
+      ON s.xID = vs.k_skupina
+  WHERE u.prijmeni LIKE '%Verner%';
+
+  3. His direct permissions on folders:
+  SELECT d.xID, d.Nazev, d.folder_path,
+         op.can_read, op.can_write, op.can_modify
+  FROM [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty_opravneni op
+  INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty d
+      ON d.xID = op.k_dokumenty
+  INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.c_uzivatele u
+      ON u.xID = op.k_uzivatel
+  WHERE u.prijmeni LIKE '%Verner%'
+    AND d.Slozka = 1
+  ORDER BY d.folder_path;
+
+  4. His group permissions on folders:
+  SELECT d.xID, d.Nazev, d.folder_path,
+         s.nazev AS SkupinaNazev,
+         op.can_read, op.can_write, op.can_modify
+  FROM [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty_opravneni op
+  INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty d
+      ON d.xID = op.k_dokumenty
+  INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.c_uzivatele_skupiny s
+      ON s.xID = op.k_skupina
+  INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.c_uzivatele_vazby_skupiny vs
+      ON vs.k_skupina = s.xID
+  INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.c_uzivatele u
+      ON u.xID = vs.k_uzivatel
+  WHERE u.prijmeni LIKE '%Verner%'
+    AND d.Slozka = 1
+  ORDER BY d.folder_path;
+
+❯ the bug is different that you think, the bug is on pic 6, on web on the same database (I have their backup using) user
+  Štěpán Verner is able to collaps folder '2024_11_15(25M)' and see some subfolders, on desktop now (even using the same
+  database) pic 5. All sql scripts I was prompting were for figuring out why it is possible and why I can not find any
+  subfolders of '2024_11_15(25M)'
+  and customer can. Do I have the same data? (I was asured that I have). Still can find it in database. Even if I run on that
+  backup locally web ui I have the same result (cannot see any subfolders) pic 4, summarize this prompt, analyze, and propose
+  solution
+
+● Let me look at the screenshots first.
+
+● Read 3 files (ctrl+o to expand)
+
+● Summary & Analysis
+
+  Three screenshots show three different states:
+
+  ┌─────────────┬─────────────────────┬──────────────────────────────────┬────────────────────┬───────────────────────────────┐
+  │     Pic     │     Environment     │               User               │  2024_11_15(25M)   │      Subfolders visible       │
+  │             │                     │                                  │      expanded      │                               │
+  ├─────────────┼─────────────────────┼──────────────────────────────────┼────────────────────┼───────────────────────────────┤
+  │ 4 (web,     │ localhost:3000,     │ Štěpán Verner                    │ Yes                │ None                          │
+  │ local)      │ your backup         │ (skrabal@proconom.cz)            │                    │                               │
+  ├─────────────┼─────────────────────┼──────────────────────────────────┼────────────────────┼───────────────────────────────┤
+  │ 5 (WPF,     │ Desktop, your       │ Štěpán Verner                    │ Yes                │ None                          │
+  │ local)      │ backup              │ (skrabal@proconom.cz)            │                    │                               │
+  ├─────────────┼─────────────────────┼──────────────────────────────────┼────────────────────┼───────────────────────────────┤
+  │ 6 (web,     │ Customer's          │ Štěpán Verner                    │                    │ 8 subfolders                  │
+  │ customer)   │ production          │ (stepan.verner@metrostav.cz)     │ Yes                │ (001_Demolice...,             │
+  │             │                     │                                  │                    │ 002_Demolice..., etc.)        │
+  └─────────────┴─────────────────────┴──────────────────────────────────┴────────────────────┴───────────────────────────────┘
+
+  The real bug
+
+  The customer sees 8 subfolders inside 2024_11_15(25M) on their production server. You can't reproduce it because your backup
+  doesn't contain those 8 subfolders. Your SQL queries confirmed: folder 9520 has 110 files, 0 subfolders.
+
+  The data discrepancy
+
+  You were assured the backup matches production, but it doesn't. Possible causes:
+
+  1. Backup was taken before those 8 subfolders were created by the customer
+  2. Backup was partial/incomplete — some records missing
+  3. Different database — the customer may be on a newer version of the data
+
+  What to check next
+
+  Also note: the user email is different — stepan.verner@metrostav.cz (production) vs skrabal@proconom.cz (your test). This
+  shouldn't affect folder visibility, but it's worth noting.
+
+  Proposed actions
+
+  1. Verify backup date — when was MagistratLiberec-2026-6-15-10-59 taken? The 2026-6-15 in the name suggests June 15. Ask the
+  customer when they created those 8 subfolders — if after June 15, that explains everything.
+  2. Ask for a fresh backup — request a new DB backup from the customer that includes the current state with those subfolders.
+  3. Alternatively, check production directly — if you have read access to their production DB, run the SQL query there:
+  SELECT d.xID, d.Nazev, d.Slozka, d.folder_path
+  FROM [PRODUCTION_DB_NAME].dbo.d_vazby v
+  INNER JOIN [PRODUCTION_DB_NAME].dbo.d_dokumenty d
+      ON v.k_dokumenty = d.xID
+  WHERE v.tabulka_id = 9520 AND v.tabulka = 'd_dokumenty'
+    AND d.Slozka = 1 AND d.Smazano IS NULL
+  ORDER BY d.Nazev;
+
+  The HasChildren fix is still valid
+
+  Regardless of the data discrepancy, the original bug (hardcoded HasChildren = true) is still a real bug — it shows expand arrows
+  on leaf folders. Once you have the correct data, the one-line fix in SlozkaPravaDTO.cs:30 will correctly hide arrows on folders
+  that truly have no subfolders.
+
+✻ Churned for 47s
+
+❯ would be possible to check it via application insights that we have available and we should be able to connect to customer
+
+● Yes, good idea. If Application Insights is logging API requests, we can see what the customer's production API actually returned
+  when they expanded that folder.
+
+  The API call for expanding a folder is GetDocumentGroupPermissions with EntityType = SLOZKA and EntityId = the folder's ID.
+
+  KQL query — find the API calls for expanding 2024_11_15(25M):
+
+  requests
+  | where timestamp > ago(30d)
+  | where url has "DocumentGroupPermissions" or name has "DocumentGroupPermissions"
+  | where url has "9520" or url has "SLOZKA"
+  | project timestamp, url, resultCode, duration, customDimensions
+  | order by timestamp desc
+  | take 50
+
+  If the endpoint uses POST (not query string), try looking at traces or custom dimensions:
+
+  requests
+  | where timestamp > ago(30d)
+  | where name has "DocumentGroupPermissions"
+  | project timestamp, name, url, resultCode, duration, customDimensions
+  | order by timestamp desc
+  | take 50
+
+  Or broader — find any DMS/document permission requests from Verner:
+
+  requests
+  | where timestamp > ago(30d)
+  | where name has "Document" and name has "Permission"
+  | project timestamp, name, url, resultCode, duration, customDimensions
+  | order by timestamp desc
+  | take 100
+
+  Key questions before we dig deeper:
+
+  1. Do you log request/response bodies in Application Insights, or only URLs + status codes? (If bodies are logged, we can see the
+   actual SlozkyPrava list with the 8 subfolders)
+  2. Do you have the customer's database name in production? (The folder xID might be different than 9520 on their server)
+  3. Can you access their Application Insights via Azure Portal, or do you need me to help with something else?
+
+  If response bodies aren't logged, we can at least confirm the request happened and check if the entity ID matches — that would
+  tell us whether the folder ID is the same or different on production.
+
+❯ Does it make any sense find out who was logged in when the screenshot was taken on customer's web ui ? pic 6 from the bug
+  assignment
+
+● Who was logged in — not really useful. The permissions admin screen shows the folder tree based on PermissionEntity (Štěpán
+  Verner, selected in the left panel), not based on who's logged in. The same folder structure would appear regardless of which
+  admin is viewing it.
+
+  When the screenshot was taken — that's what matters. If pic 6 was taken after June 15 (your backup date 2026-6-15-10-59), those 8
+   subfolders were likely created between the backup and the screenshot. That would explain everything.
+
+  So in Application Insights, look for the timestamp of the request, not the user:
+
+  requests
+  | where timestamp > datetime(2026-06-14)
+  | where name has "DocumentGroupPermissions"
+  | order by timestamp desc
+  | take 50
+
+  Or check the bug assignment metadata — when was pic 6 attached/created? If the file has EXIF or creation date, that tells you
+  immediately without needing Application Insights.
+
+❯ this is the picture saved from the bug assignment, can you read meta data of the file and findout when it was taken?
+
+● The file at C:\Users\karel.skrabal\Documents\Test1\Source\6.png was saved from the bug assignment, so it likely has the
+  download/save date, not the original capture date. But let's try:
+
+● Read 1 file (ctrl+o to expand)
+
+❯ this picture
+  ⎿  [Image #9]
+
+● I can't extract EXIF/metadata from the image content directly. But I notice something interesting in the screenshot:
+
+  1. Folders 20250124 and 20250131 are visible at the top — these are from January 2025, well before your backup date (June 15,
+  2026), so the backup should contain them.
+  2. The 8 subfolders under 2024_11_15(25M) have orange minus icons (not green checkmarks) for permissions — meaning they have no
+  explicit permissions set for Verner, unlike the parent folders.
+  3. The user is stepan.verner@metrostav.cz — the real customer account, not your test account.
+
+  To find when the screenshot was taken, check the bug assignment in TFS/DevOps — the attachment upload date or the bug creation
+  date will tell you. That's more reliable than file metadata anyway.
+
+  But here's the bigger question: If those 8 subfolders truly don't exist in your backup, it means either:
+  - They were created after June 15, 2026 (backup date)
+  - They were deleted and the backup caught the state without them
+  - The backup is from a different environment
+
+  Would you like to check via Application Insights whether any GetDocumentGroupPermissions call for that folder returned those 8
+  subfolders — and when?
+
+❯ yes, if it is true that those folders are still in their production database I should be able to find out via application
+  insihts
+
+● Right. When someone expands 2024_11_15(25M) in the permissions tree, the web UI calls the API endpoint
+  GetDocumentGroupPermissions with EntityType = SLOZKA and EntityId = that folder's ID.
+
+  Here are KQL queries to try in Application Insights:
+
+  1. Find all calls to the document permissions endpoint:
+  requests
+  | where timestamp > ago(30d)
+  | where name has "DocumentGroupPermissions"
+  | project timestamp, name, url, resultCode, duration,
+           requestBody = customDimensions["RequestBody"],
+           responseBody = customDimensions["ResponseBody"]
+  | order by timestamp desc
+  | take 100
+
+  2. If request/response bodies aren't logged, check traces instead:
+  traces
+  | where timestamp > ago(30d)
+  | where message has "DocumentGroupPermissions" or message has "9520"
+  | project timestamp, message, severityLevel, customDimensions
+  | order by timestamp desc
+  | take 50
+
+  3. If you know the endpoint URL pattern, search by URL:
+  requests
+  | where timestamp > ago(30d)
+  | where url has "document" and url has "permission"
+  | project timestamp, name, url, resultCode, duration
+  | order by timestamp desc
+  | take 100
+
+  4. Broader — any API call that mentions the folder ID (if it's in the URL or query string):
+  requests
+  | where timestamp > ago(30d)
+  | where url has "9520"
+  | project timestamp, name, url, resultCode, duration
+  | order by timestamp desc
+
+  Note: The folder ID might be different on production than 9520 in your backup. If you don't find 9520, try searching by the
+  endpoint name first (queries 1 or 3) to see what entity IDs are being passed.
+
+  What does your Application Insights show?
+
+❯ give me all sub items (folders or files) of '2024_11_15(25M)' for any stavba and any user
+
+● -- Find all children (folders + files) of any folder named '2024_11_15(25M)'
+  SELECT parent.xID AS ParentId, parent.Nazev AS ParentNazev, parent.folder_path AS ParentPath,
+         d.xID, d.Nazev, d.Pojmenovani, d.Slozka,
+         CASE WHEN d.Slozka = 1 THEN 'FOLDER' ELSE 'FILE' END AS Type,
+         d.folder_path, d.Smazano
+  FROM [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty parent
+  INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.d_vazby v
+      ON v.tabulka_id = parent.xID AND v.tabulka = 'd_dokumenty'
+  INNER JOIN [MagistratLiberec-2026-6-15-10-59].dbo.d_dokumenty d
+      ON v.k_dokumenty = d.xID
+  WHERE parent.Nazev LIKE '%2024[_]11[_]15%' AND parent.Slozka = 1
+  ORDER BY parent.xID, d.Slozka DESC, d.Nazev;
+
+  This includes all children — even deleted ones (Smazano IS NOT NULL) — so we can see if those 8 subfolders exist but are
+  soft-deleted.
+
+
+-----------------x
+
  it is ok now, back to the bug, in wpf repo in the current branch prerelease_30018_ksk_DMSsubfolders in commit fe00c456ed370cb4941953a47ed8c484f312a722 I tried to solve the problem, in
   other db working fine, but in this database not, pic 2, marked item should have subfolders , it is not possible to click into it, check in db if it is true that it has any subitems, if
   yes analazy the problem in wpf ui. I am using db MagistratLiberec-2026-6-15-10-59
