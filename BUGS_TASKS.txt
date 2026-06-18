@@ -1,4 +1,12 @@
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/30089/
+User Story 30089: Desktop - Fakturace - Zálohová faktura - přidat pole pro vyplnění Variabilního symbolu
+
+
+
+
+
+---------------------------------------------------------------------------------------------------------------------------
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/30018/
 Bug 30018: Desktop - admin - práva DMS - nezobrazují se podsložky po rozbalení
