@@ -5899,8 +5899,223 @@ https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29036/
 28836 - tisky Stavební deník
 
 branch prerelease_28936_ksk_endpointyMereniWeb obsahuje infrastrukturu pro různé výstupy tisků, tohle musí být implementováné -> A TO JE!!!!!!
+--------------------------------------x
+!!!!!!!!!!!!!!!! ZAPRACOVAT !!!!!!!!!!!!!!!!!!!!!!
+  PR Test Review — TestApi.IntegrationTests.Tests.Rozpocet
 
---------------------------------------
+  Branch: develop_29036_ksk_PrintingBudget
+  8 test files, ~70 test methods total
+
+  ---
+  CHECKLIST SUMMARY
+
+  ✅ Structure (all files pass)
+
+  ┌───────────────────────────────────────┬────────────────┬────────────────────────────────────────────┐
+  │                 Rule                  │     Status     │                   Notes                    │
+  ├───────────────────────────────────────┼────────────────┼────────────────────────────────────────────┤
+  │ [Collection(TiskTestCollection.Name)] │ ✅ All 8 files │ Correct collection for TiskReportApi tests │
+  ├───────────────────────────────────────┼────────────────┼────────────────────────────────────────────┤
+  │ Folder Tests/Rozpocet/                │ ✅             │ All in correct folder                      │
+  ├───────────────────────────────────────┼────────────────┼────────────────────────────────────────────┤
+  │ File name {Action}Test.cs             │ ✅             │ All follow naming convention               │
+  ├───────────────────────────────────────┼────────────────┼────────────────────────────────────────────┤
+  │ Namespace matches folder              │ ✅             │ TestApi.IntegrationTests.Tests.Rozpocet    │
+  └───────────────────────────────────────┴────────────────┴────────────────────────────────────────────┘
+
+  ✅ Fixture & DB (all files pass)
+
+  ┌───────────────────────────────────────────────────┬────────┬───────────────────────────────────────────────────────────────┐
+  │                       Rule                        │ Status │                             Notes                             │
+  ├───────────────────────────────────────────────────┼────────┼───────────────────────────────────────────────────────────────┤
+  │ Every DB-modifying test calls ResetAndSeedAsync() │ ✅     │ All tests call it at start                                    │
+  ├───────────────────────────────────────────────────┼────────┼───────────────────────────────────────────────────────────────┤
+  │ DB scopes wrapped in using                        │ ✅     │ All seed helpers use using IServiceScope scope = ...          │
+  ├───────────────────────────────────────────────────┼────────┼───────────────────────────────────────────────────────────────┤
+  │ EF entities not shared between scopes             │ ✅     │ ChangeTracker.Clear() used correctly after SaveChangesAsync() │
+  └───────────────────────────────────────────────────┴────────┴───────────────────────────────────────────────────────────────┘
+
+  ⚠️ Seedování dat — FINDINGS
+
+  ┌──────────────────────────────────────┬─────────────────┬───────────────────────────────────────────────────────────────────┐
+  │                 Rule                 │     Status      │                               Notes                               │
+  ├──────────────────────────────────────┼─────────────────┼───────────────────────────────────────────────────────────────────┤
+  │ DB writes via SeedBuilder only       │ ❌ FAIL — all 8 │ All seed helpers write directly via db.Add() + SaveChangesAsync() │
+  │                                      │  files          │  instead of using SeedBuilder                                     │
+  ├──────────────────────────────────────┼─────────────────┼───────────────────────────────────────────────────────────────────┤
+  │ Seed helpers in #region Data seeding │ ✅              │ All seed helpers are properly wrapped                             │
+  ├──────────────────────────────────────┼─────────────────┼───────────────────────────────────────────────────────────────────┤
+  │ New {TableName}Add methods in        │ ❌ N/A          │ No new SeedBuilder methods created because SeedBuilder is not     │
+  │ {TableName}Seed.cs                   │                 │ used at all                                                       │
+  ├──────────────────────────────────────┼─────────────────┼───────────────────────────────────────────────────────────────────┤
+  │ SeedBuilder scope released via       │ ❌ N/A          │ Not applicable — SeedBuilder not used                             │
+  │ Build()                              │                 │                                                                   │
+  └──────────────────────────────────────┴─────────────────┴───────────────────────────────────────────────────────────────────┘
+
+  Detail: Every single seed helper (SeedStavbaAsync, SeedStavbaWithObjektAsync, SeedStavbaWithZbvAsync, etc.) in all 8 test files
+  follows this pattern:
+
+  using IServiceScope scope = _fixture.CreateScope();
+  DB_DevelopContext db = scope.ServiceProvider.GetRequiredService<DB_DevelopContext>();
+  // ... db.SUtvary.Add(utvar); await db.SaveChangesAsync(); ...
+
+  Per rule 4.1 / 4.2: "Zápis do databáze se provádí vždy přes SeedBuilder" and "Veškeré zápisy do databáze provádí pouze
+  SeedBuilder".
+
+  This is a systemic violation across all 8 files. The seed data should use SeedBuilder chains with proper Add methods.
+
+  ✅ / ⚠️ Tests structure
+
+  ┌────────────────────────────────────────┬─────────────┬────────────────────────────────────────────────────────────────────┐
+  │                  Rule                  │   Status    │                               Notes                                │
+  ├────────────────────────────────────────┼─────────────┼────────────────────────────────────────────────────────────────────┤
+  │ // Arrange / // Act / // Assert        │             │ Most tests follow AAA correctly. A few web happy-path tests in     │
+  │ sections                               │ ⚠️ Partial  │ GetSoupisPraciDataTest (lines 76-89) are missing explicit // Act   │
+  │                                        │             │ and // Assert comment separators                                   │
+  ├────────────────────────────────────────┼─────────────┼────────────────────────────────────────────────────────────────────┤
+  │ Test naming                            │ ✅          │ All follow the pattern                                             │
+  │ {Method}_{Scenario}_{ExpectedResult}   │             │                                                                    │
+  ├────────────────────────────────────────┼─────────────┼────────────────────────────────────────────────────────────────────┤
+  │ Happy path covered                     │ ✅          │ All 8 files have happy path tests                                  │
+  ├────────────────────────────────────────┼─────────────┼────────────────────────────────────────────────────────────────────┤
+  │ Error states covered                   │ ✅          │ All 8 files test non-existent stavba                               │
+  ├────────────────────────────────────────┼─────────────┼────────────────────────────────────────────────────────────────────┤
+  │                                        │ ❌ MISSING  │ No file has a test for unauthenticated access (new                 │
+  │ 401 / Unauthorized tests               │ — all 8     │ TiskClient(_fixture.CreateClient()))                               │
+  │                                        │ files       │                                                                    │
+  ├────────────────────────────────────────┼─────────────┼────────────────────────────────────────────────────────────────────┤
+  │ Edge cases from handler                │ ⚠️ Partial  │ See detailed analysis below                                        │
+  ├────────────────────────────────────────┼─────────────┼────────────────────────────────────────────────────────────────────┤
+  │ Error scenarios verify ex.StatusCode   │ ✅          │ All error tests assert specific status code                        │
+  ├────────────────────────────────────────┼─────────────┼────────────────────────────────────────────────────────────────────┤
+  │                                        │             │ These are report/print endpoints returning files — no persistence  │
+  │ DB assertions check field values       │ ⚠️ N/A      │ to verify. File assertions only check ms.Length > 0 which is       │
+  │                                        │             │ acceptable for file responses                                      │
+  └────────────────────────────────────────┴─────────────┴────────────────────────────────────────────────────────────────────┘
+
+  ✅ Client
+
+  ┌──────────────────────────────┬────────┬─────────────────────────────────────────────────────────┐
+  │             Rule             │ Status │                          Notes                          │
+  ├──────────────────────────────┼────────┼─────────────────────────────────────────────────────────┤
+  │ Typed client used            │ ✅     │ All use TiskClient                                      │
+  ├──────────────────────────────┼────────┼─────────────────────────────────────────────────────────┤
+  │ Anonymous access tested      │ ❌     │ See 401 finding above                                   │
+  ├──────────────────────────────┼────────┼─────────────────────────────────────────────────────────┤
+  │ File response stream handled │ ✅     │ using MemoryStream + CopyToAsync pattern used correctly │
+  └──────────────────────────────┴────────┴─────────────────────────────────────────────────────────┘
+
+  ---
+  DETAILED FINDINGS
+
+  FINDING 1 (HIGH) — No SeedBuilder usage in any file
+
+  All 8 files write directly to DB via db.XYZ.Add() + SaveChangesAsync(). This violates rules 4.1 and 4.2 which state:
+
+  "Zápis do databáze se provádí vždy přes SeedBuilder"
+  "Veškeré zápisy do databáze provádí pouze SeedBuilder"
+
+  Affected files: All 8 test files.
+
+  Impact: If existing SeedBuilder partial methods for SUtvary, SStavby etc. already handle required field defaults, the manual
+  seeding duplicates that logic. If any new entity tables are needed (e.g., ZbvZbv, ZbvPol, RPol, RSd, RObjekty, CPozice,
+  SStavbyNastaveni), new {TableName}Seed.cs files with both overloads should be created.
+
+  Note: Existing SeedBuilder has methods for SUtvary, SStavby, CPartneri, CSdruzeni, FFaktury, SStavbySdruzeni, SStavDenik. Missing
+   from SeedBuilder: RObjekty, RSd, RPol, ZbvZbv, ZbvPol, SStavbyNastaveni, CPozice. These would need to be added as new partial
+  class SeedBuilder files.
+
+  ---
+  FINDING 2 (HIGH) — No 401 (Unauthorized) tests
+
+  Per rule 3.3, every test file should cover authorization: "Autorizace — neautentizovaný přístup → 401".
+
+  None of the 8 files tests what happens when an unauthenticated client calls the endpoint. The expected pattern is:
+
+  [Fact]
+  public async Task GetXxx_Unauthenticated_Returns401()
+  {
+      // Arrange
+      await _fixture.ResetAndSeedAsync();
+
+      // Act & Assert
+      TiskClient anonymousClient = new(_fixture.CreateClient());
+      ApiException ex = await Assert.ThrowsAsync<ApiException>(() =>
+          anonymousClient.Reports_GetXxxAsync(...));
+      Assert.Equal((int)HttpStatusCode.Unauthorized, ex.StatusCode);
+  }
+
+  Affected: All 8 files — 8 missing 401 tests (16 if desktop + web each need one).
+
+  ---
+  FINDING 3 (MEDIUM) — Assert.ThrowsAnyAsync<Exception> instead of specific status code
+
+  Files affected:
+  - GetNabidkovySoupisTest.cs:55 — ThrowsAnyAsync<Exception> with comment "handler nemá null-check"
+  - GetZaverecneVyporadaniDataTest.cs:113,126 — ThrowsAnyAsync<Exception> for missing CPozice edge case
+
+  Per rule 5.2: "Vždy ověřit ex.StatusCode — nestačí jen to, že výjimka byla vyhozena."
+
+  Using ThrowsAnyAsync<Exception> means the test passes for any exception (NullRef, timeout, network error, etc.), which makes it
+  fragile and non-specific. If the handler truly has no null-check, this is a handler bug that should be reported, and the test
+  should ideally assert a concrete expected behavior (e.g., 400 or 500).
+
+  The comments explain why (ThrowsAnyAsync is used because the handler lacks a null-check), which is useful documentation, but the
+  tests still technically violate rule 5.2.
+
+  ---
+  FINDING 4 (MEDIUM) — Missing // Act / // Assert comment separators
+
+  File: GetSoupisPraciDataTest.cs
+  - GetKomplexniSoupisPraciData_ValidStavba_Web_Returns200 (lines 76-89) — missing // Act and // Assert separators; code flows
+  directly from Arrange into client call and assertions without section markers.
+
+  Per rule 3.1: "Každý test musí být rozdělen do sekcí oddělených komentáři."
+
+  ---
+  FINDING 5 (LOW) — Massive seed data duplication
+
+  All 8 files contain nearly identical SeedStavbaAsync() methods that create the same structure: SUtvary → SStavby → RObjekty → RSd
+   → RPol × 2 → SStavbyNastaveni. This ~50-line block is copy-pasted across all files with only minor variations (Znacka, Nazev).
+
+  This is a code smell but not a rule violation per se. If SeedBuilder were used (Finding 1), most of this would collapse into a
+  shared builder chain.
+
+  ---
+  FINDING 6 (LOW) — Infrastructure change: CSkupiny seed in IntegrationTestFactoryBase
+
+  The branch adds 5 CSkupiny records to the global seed in IntegrationTestFactoryBase.cs. The comment explains: "usp_zbv_tisk_excel
+   tabulky 2–5 filtrují dle typ_investor" and "SkupinyExcelFinalDTO.DoplnHodnoty() volá .Single() pro skupiny s CisloSkupiny 1–4".
+
+  This is correct — reference data (číselník) that all tests depend on belongs in the global seed. This follows the rule that base
+  fixture provides shared reference data.
+
+  ⚠️ Minor note: The existing base already had CSkupiny seeding for groups 1-5 (per agent research). If this is a duplicate, the
+  second AddRange would cause a unique constraint violation at runtime. Verify this doesn't conflict with existing seed.
+
+  ---
+  SUMMARY TABLE
+
+  ┌─────┬──────────┬──────────────────────────────────────────────────────┬────────────────────────────────────────────────────┐
+  │  #  │ Severity │                       Finding                        │                       Files                        │
+  ├─────┼──────────┼──────────────────────────────────────────────────────┼────────────────────────────────────────────────────┤
+  │ 1   │ HIGH     │ No SeedBuilder usage — all DB writes are manual      │ All 8                                              │
+  │     │          │ db.Add()                                             │                                                    │
+  ├─────┼──────────┼──────────────────────────────────────────────────────┼────────────────────────────────────────────────────┤
+  │ 2   │ HIGH     │ No 401 Unauthorized tests                            │ All 8                                              │
+  ├─────┼──────────┼──────────────────────────────────────────────────────┼────────────────────────────────────────────────────┤
+  │ 3   │ MEDIUM   │ ThrowsAnyAsync<Exception> without status code        │ GetNabidkovySoupisTest,                            │
+  │     │          │ assertion                                            │ GetZaverecneVyporadaniDataTest                     │
+  ├─────┼──────────┼──────────────────────────────────────────────────────┼────────────────────────────────────────────────────┤
+  │ 4   │ MEDIUM   │ Missing // Act / // Assert section separators        │ GetSoupisPraciDataTest (1 test)                    │
+  ├─────┼──────────┼──────────────────────────────────────────────────────┼────────────────────────────────────────────────────┤
+  │ 5   │ LOW      │ Massive copy-paste seed duplication                  │ All 8                                              │
+  ├─────┼──────────┼──────────────────────────────────────────────────────┼────────────────────────────────────────────────────┤
+  │ 6   │ LOW      │ Verify CSkupiny global seed isn't duplicated         │ IntegrationTestFactoryBase                         │
+  └─────┴──────────┴──────────────────────────────────────────────────────┴────────────────────────────────────────────────────┘
+
+✻ Crunched for 8m 59s
+--------------------------------------x
 
 přehledný popis stavu integračních testů je tady :
 "C:\Users\karel.skrabal\Documents\Test1\Source\29036-budget-printing-summary.html"
