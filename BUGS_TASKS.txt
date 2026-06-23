@@ -1,4 +1,14 @@
 
+
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29957/
+User Story 29957: desktop - admin panel - uživatelské oprávnění Zpětně doplnit docházku
+"C:\Users\karel.skrabal\Documents\Test1\Source\feature-29954-backfill-dochazka.md"
+
+
+--------------------------------------------------------------------------------------------------------------------
+
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/30089/
 User Story 30089: Desktop - Fakturace - Zálohová faktura - přidat pole pro vyplnění Variabilního symbolu
 
