@@ -1,4 +1,15 @@
 
+
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29958
+Feature 29958: Manabau - Nespouštět docházku časovačem
+
+
+"Load feature 29958 plan from Test1 Source"
+"C:\Users\karel.skrabal\Documents\Test1\Source\feature-29958-plan.md"
+
+---------------------------------------------------------------------------------------------------------------------
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29954
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29957/
 User Story 29957: desktop - admin panel - uživatelské oprávnění Zpětně doplnit docházku
