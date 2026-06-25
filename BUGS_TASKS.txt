@@ -1,6 +1,21 @@
 
 
 
+
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/30148
+Bug 30148: Desktop - DMS - sjednocení hlášek při nahrávání do rootu ne-adminem
+
+ČEKAT NA PR na API který ještě není schválený
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_git/46952a96-1651-43fe-8d55-38786d245153/pullrequest/20400?_a=overview
+
+moje úpravy jsou v develop_30148_ksk_DMSrootNoAdmin
+
+
+
+--------------------------------------------------------------------------------------------------------------------
+
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29957/
 User Story 29957: desktop - admin panel - uživatelské oprávnění Zpětně doplnit docházku
 "C:\Users\karel.skrabal\Documents\Test1\Source\feature-29954-backfill-dochazka.md"
