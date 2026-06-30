@@ -1,4 +1,13 @@
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/30246/
+Bug 30246: Desktop - Zbv - sjednotit řazení založených zbv (strom x přehled změn)
+
+
+hotovo do developu
+develop_30246_ksk_ZbvSorting
+
+
+-------------------------------------------------------------------------------------------
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28956/
 User Story 28956: korespondence - tiskové výstupy
