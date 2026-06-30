@@ -1,5 +1,42 @@
 
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28956/
+User Story 28956: korespondence - tiskové výstupy
+
+# ===== KORESPONDENCE EXCEL EXPORT — CURL TEST SCRIPT =====
+  # Database: Prerelease-2026-5-22-10-33
+  # StavbaId: 1268
+  # Run in Git Bash
+
+  # Step 1 — Login (get pre-auth token)
+  PREAUTH=$(curl -sk -X POST https://localhost:44301/api/anonym/auth/authenticate/master \
+    -H "Content-Type: application/json" \
+    -d '{"userName":"skrabal@proconom.cz","password":"YOUR_PASSWORD","idp":1}' | jq -r '.authToken')
+
+  echo "PREAUTH=$PREAUTH"
+
+  # Step 2 — Database token
+  TOKEN=$(curl -sk -X POST https://localhost:44301/api/auth/databasetoken \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $PREAUTH" \
+    -d '{"database":"Prerelease-2026-5-22-10-33"}' | jq -r '.uzivatel.token')
+
+  echo "TOKEN=$TOKEN"
+
+  # Step 3 — Excel export (stavbaId = 1268)
+  curl -sk "https://localhost:44301/api/Correspondence/constructions/1268/excel" \
+    -H "Authorization: Bearer $TOKEN" \
+    -o "/c/Users/karel.skrabal/Documents/Test1/Source/Korespondence_export.xlsx" \
+    -w "\nHTTP_CODE: %{http_code}\nSIZE: %{size_download}\n"
+
+  Notes:
+  - Replace YOUR_PASSWORD with your actual password
+  - Replace Prerelease-2026-5-22-10-33 with any other DB name as needed
+  - Replace 1268 with any other construction xID
+
+
+----------------------------------------------------------------------------------------------------------------------
+
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29958
 Feature 29958: Manabau - Nespouštět docházku časovačem
