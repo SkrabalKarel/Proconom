@@ -3,6 +3,13 @@
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28956/
 User Story 28956: korespondence - tiskové výstupy
 
+tutorial na korespondenci je tady
+
+"C:\Users\karel.skrabal\Documents\Test1\Source\korespondence-module-notes.md"
+
+
+-----------------------x
+
 # ===== KORESPONDENCE EXCEL EXPORT — CURL TEST SCRIPT =====
   # Database: Prerelease-2026-5-22-10-33
   # StavbaId: 1268
