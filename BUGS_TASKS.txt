@@ -35,6 +35,102 @@ User Story 28956: korespondence - tiskové výstupy
   - Replace 1268 with any other construction xID
 
 
+--------------------x
+
+What it does
+
+  Adds a new API endpoint that exports the entire correspondence of a construction project to an Excel file (.xlsx).
+
+  Endpoint:
+  GET /correspondence/constructions/{ConstructionId}/excel
+
+  The Excel has 2 sheets:
+
+  Sheet 1: "Databáze korespondence" (Letter Database)
+
+  Landscape, fit-to-page. Blue header row. Columns:
+
+  ┌─────┬──────────────────┬─────────────────────────────────────────────────────────────────────────────┐
+  │ Col │      Header      │                                   Source                                    │
+  ├─────┼──────────────────┼─────────────────────────────────────────────────────────────────────────────┤
+  │ A   │ Odesílatel       │ Sender name (internal user or external contact)                             │
+  ├─────┼──────────────────┼─────────────────────────────────────────────────────────────────────────────┤
+  │ B   │ Hlavní Pod-čl.   │ First sub-article from Podclanky (comma-split)                              │
+  ├─────┼──────────────────┼─────────────────────────────────────────────────────────────────────────────┤
+  │ C   │ Vedlejší Pod-čl. │ Remaining sub-articles                                                      │
+  ├─────┼──────────────────┼─────────────────────────────────────────────────────────────────────────────┤
+  │ D   │ Číslo dopisu     │ Identifikator                                                               │
+  ├─────┼──────────────────┼─────────────────────────────────────────────────────────────────────────────┤
+  │ E   │ Číslo Události   │ Linked event identifiers (joined)                                           │
+  ├─────┼──────────────────┼─────────────────────────────────────────────────────────────────────────────┤
+  │ F   │ Předmět dopisu   │ Nazev                                                                       │
+  ├─────┼──────────────────┼─────────────────────────────────────────────────────────────────────────────┤
+  │ G   │ Datum            │ Send date or upload date (dd.MM.yyyy)                                       │
+  ├─────┼──────────────────┼─────────────────────────────────────────────────────────────────────────────┤
+  │ H   │ Odpověď na dopis │ Identifiers of letters this answers to                                      │
+  ├─────┼──────────────────┼─────────────────────────────────────────────────────────────────────────────┤
+  │ I   │ Stav             │ State: Koncept/Odesláno/Neodesláno/Ke schválení/Schváleno/Zamítnuto/Smazáno │
+  ├─────┼──────────────────┼─────────────────────────────────────────────────────────────────────────────┤
+  │ J   │ Přílohy          │ Attachment file names (semicolon-separated)                                 │
+  ├─────┼──────────────────┼─────────────────────────────────────────────────────────────────────────────┤
+  │ K   │ Poznámka         │ Vyjadreni (statement/comment)                                               │
+  └─────┴──────────────────┴─────────────────────────────────────────────────────────────────────────────┘
+
+  Filters out deleted letters. Sorted by Identifikator.
+
+  Sheet 2: "Přehled Claimů a Změn" (Claims & Changes Overview)
+
+  Has a category header row ("Všeobecné" | "Předběžný časový a finanční dopad"). 13 columns:
+
+  ┌─────┬───────────────────────┬─────────────────────────────────────────────────────────────────────────┐
+  │ Col │        Header         │                                 Source                                  │
+  ├─────┼───────────────────────┼─────────────────────────────────────────────────────────────────────────┤
+  │ A   │ Typ                   │ Action type: Změna/Claim/Zlepšení/various notifications (FIDIC-related) │
+  ├─────┼───────────────────────┼─────────────────────────────────────────────────────────────────────────┤
+  │ B   │ Č. Události           │ Event identifier                                                        │
+  ├─────┼───────────────────────┼─────────────────────────────────────────────────────────────────────────┤
+  │ C   │ Podstata Události     │ Event name                                                              │
+  ├─────┼───────────────────────┼─────────────────────────────────────────────────────────────────────────┤
+  │ D   │ SO                    │ (empty — not linked in model yet)                                       │
+  ├─────┼───────────────────────┼─────────────────────────────────────────────────────────────────────────┤
+  │ E   │ First notice          │ ANO/NE                                                                  │
+  ├─────┼───────────────────────┼─────────────────────────────────────────────────────────────────────────┤
+  │ F   │ Č. Claimu/Změny       │ (empty — no field on action)                                            │
+  ├─────┼───────────────────────┼─────────────────────────────────────────────────────────────────────────┤
+  │ G   │ Článek FIDIC, SoD     │ Clanky from action                                                      │
+  ├─────┼───────────────────────┼─────────────────────────────────────────────────────────────────────────┤
+  │ H   │ Aktuální stav         │ Oznámeno/Dohodnuto/V posouzení                                          │
+  ├─────┼───────────────────────┼─────────────────────────────────────────────────────────────────────────┤
+  │ I   │ Časový dopad          │ DopadCas (numeric)                                                      │
+  ├─────┼───────────────────────┼─────────────────────────────────────────────────────────────────────────┤
+  │ J   │ Stav dopadu (čas)     │ Same state as H                                                         │
+  ├─────┼───────────────────────┼─────────────────────────────────────────────────────────────────────────┤
+  │ K   │ Finanční dopad        │ DopadCena (formatted #,##0.00)                                          │
+  ├─────┼───────────────────────┼─────────────────────────────────────────────────────────────────────────┤
+  │ L   │ Stav dopadu (finance) │ Same state as H                                                         │
+  ├─────┼───────────────────────┼─────────────────────────────────────────────────────────────────────────┤
+  │ M   │ Poznámky              │ Event + action notes combined with "                                    │
+  └─────┴───────────────────────┴─────────────────────────────────────────────────────────────────────────┘
+
+  Events with no actions get a single row. Events with actions get one row per action.
+
+  Helper methods
+
+  - GetSenderName — resolves sender from either internal user or partner contact
+  - SplitPodclanky — splits comma-delimited sub-article string into main + secondary
+  - GetLetterStateText — enum → Czech label (exhaustive switch)
+  - GetActionTypeText — 12 action types including FIDIC-style notifications
+  - GetActionStateText — 4 states
+
+  Tech details
+
+  - Uses Syncfusion XlsIO for Excel generation
+  - Returns FileResponsePCM (stream + content type + filename)
+  - Filename: Korespondence_{stavba.Znacka}.xlsx
+  - Uses AsSplitQuery() to avoid cartesian explosion from multiple includes
+  - All queries are AsNoTracking()
+
+
 ----------------------------------------------------------------------------------------------------------------------
 
 
