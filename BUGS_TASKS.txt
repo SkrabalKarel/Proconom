@@ -163,7 +163,8 @@ https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29954
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/29957/
 User Story 29957: desktop - admin panel - uživatelské oprávnění Zpětně doplnit docházku
 
-hotovo , commitnuto do branch develop_ksk_29954_BackFillActionRights
+hotovo , commitnuto do branch prerelease_ksk_29954_BackFillActionRights
+
 
 
 
