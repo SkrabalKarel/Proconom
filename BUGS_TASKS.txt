@@ -1,5 +1,14 @@
 
 
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/30328
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27807
+User Story 30328: Desktop - Oprávnění na akce WF s procesy
+"C:\Users\karel.skrabal\Documents\Test1\Source\wf-action-rights-wpf-plan.md"
+
+---------------------------------------------------------------------------------------------
+
+
  Script saved: C:\Users\karel.skrabal\Documents\Test1\Source\fix-resx-sorting.py
 
   Usage:
