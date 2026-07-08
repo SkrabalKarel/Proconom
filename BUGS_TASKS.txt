@@ -1,5 +1,13 @@
 
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/30341/
+Bug 30341: desktop - manažer staveb - nelze uložit nastavení stavby
+
+branch
+master_30341_ksk_MngSettings
+
+--------------------------------------------------------------------------------------------
+
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/30328
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/27807
