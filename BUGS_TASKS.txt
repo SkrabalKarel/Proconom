@@ -1,4 +1,85 @@
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/30633/
+User Story 30632: Integrační testy - nahrazení ExecuteSqlRawAsync
+
+Shrnutí řešení odstranění raw SQL
+
+  Problém
+
+  V integračních testech GetStavebniDenikDataTest.cs a GetStavebniDenikTitulniStranaTest.cs se používal raw SQL s IDENTITY_INSERT pro vložení záznamu do tabulky r_objekty_sd
+  se stejným ID jako v tabulce r_objekty. Bylo to nutné, protože handlery v TiskReportApi validovaly objektId proti tabulce r_objekty_sd, zatímco FK na
+  s_stav_denik.k_objekt_sd ukazoval na tabulku r_objekty — stejné ID muselo existovat v obou nezávislých tabulkách.
+
+  Příčina
+
+  Analýzou celého codebase (25+ handlerů, 6 stored procedur, FK definice, EF navigace) se ukázalo, že validace proti r_objekty_sd ve 3 místech v TiskReportApi byla chyba.
+  Veškerý ostatní kód konzistentně pracuje s r_objekty:
+
+  - FK FK_s_stav_denik_r_objekty → r_objekty.xID
+  - EF navigace SStavDenik.KObjektSdNavigation → typ RObjekty
+  - Všechny stored procedury joinují k_objekt_sd na r_objekty
+  - Tabulka r_objekty_sd nemá žádné externí FK reference (pouze self-referencing hierarchii)
+
+  Řešení
+
+  3 opravy v handlerech — změna validace z RObjektySd na RObjekty:
+  - GetStavebniDenikDataHandler.cs (řádky 61 a 97)
+  - GetStavebniDenikByStavbaTimeHandler.cs (řádek 42)
+
+  2 opravy v testech — odstranění raw SQL, použití čistého SeedBuilderu:
+  - RObjekty se přidává přes c.RObjekty.Add(...) v callbacku SStavbyAdd
+  - Po Build() se získá ID přes stavba.RObjekty.Single().XId
+  - Odpadl celý scope s ExecuteSqlRawAsync a IDENTITY_INSERT
+  - Odstraněn nepoužívaný using Microsoft.EntityFrameworkCore
+
+❯ 3 opravy v handlerech — změna validace z RObjektySd na RObjekty:
+    - GetStavebniDenikDataHandler.cs (řádky 61 a 97)
+    - GetStavebniDenikByStavbaTimeHandler.cs (řádek 42) .... check if any existing functionality was influenced, especially for wpf ui, web ui
+
+● 3 Explore agents finished (ctrl+o to expand)
+   ├─ Trace objektId origin in WPF · 32 tool uses · 98.7k tokens
+   │  ⎿  Done
+   ├─ Trace objektId origin in Web UI · 31 tool uses · 60.5k tokens
+   │  ⎿  Done
+   └─ Check objektId source in SD module · 33 tool uses · 55.6k tokens
+      ⎿  Done
+
+● Výsledek — žádná existující funkcionalita nebyla ovlivněna
+
+  Kompletní trasování potvrdilo, že objektId vždy pochází z RObjekty.XId ve všech klientech:
+
+  WPF UI
+
+  StavDenikSectionControl.xaml.cs → TreeView zobrazuje objekty z GetConstructionDiaryObjectsHandler → ten dotazuje RObjekty (ne RObjektySd) → AutoMapper mapuje RObjekty.XId →
+   TreeObjectDesktopDTO.Id → uživatel vybere objekt → KodObjekt → StavebniDenikPrint.ObjektId → ReportServer.GetStavebniDenikReport() → API
+
+  Web UI
+
+  URL parametr ?objekt=X → stavebniDenikScene.tsx → actionBar.tsx → printDialog.tsx → reports_GetStavebniDenikDataWeb(stavbaId, objectId, ...) → API
+
+  API (tvorba záznamů)
+
+  Všechny handlery které vytvářejí SStavDenik (CreateOrUpdateStavebniDenikHandler, CopyStavebniDenikHandler, UploadVzorkyHandler, UpdatePocasiHandler,
+  LockMultipleDiariesHandler, KopirujInventarDoDenikuHandler) přiřazují do KObjektSd hodnotu pocházející z RObjekty.XId.
+
+  Klíčový závěr
+
+  ┌───────────────────────────────────────────────────────────────────┬────────────────────────────────────────────────────────────────────────┐
+  │                              Otázka                               │                                Odpověď                                 │
+  ├───────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────┤
+  │ Existuje kód který ukládá RObjektySd.XId do SStavDenik.KObjektSd? │ Ne, žádný                                                              │
+  ├───────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────┤
+  │ Odkud pochází objektId v produkci?                                │ Vždy z RObjekty.XId                                                    │
+  ├───────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────┤
+  │ Je změna validace z RObjektySd na RObjekty bezpečná?              │ Ano — odpovídá FK, stored procedurám, EF navigaci i všem klientům      │
+  ├───────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────┤
+  │ Ovlivní to WPF UI?                                                │ Ne — posílá RObjekty.XId, validace proti RObjekty bude fungovat stejně │
+  ├───────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────┤
+  │ Ovlivní to Web UI?                                                │ Ne — stejný flow přes RObjekty.XId                                     │
+  └───────────────────────────────────────────────────────────────────┴────────────────────────────────────────────────────────────────────────┘
+
+
+-------------------------------------------------------------------------------------------
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/30341/
 Bug 30341: desktop - manažer staveb - nelze uložit nastavení stavby
