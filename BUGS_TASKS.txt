@@ -1,4 +1,13 @@
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/30410/
+User Story 30410: Desktop - Měření - položka - přidání popelnice pro smazání denního/měsíčního záznamu měření a dokumentů
+
+tady je historie a popis imlplementace, není to úplně hotovo jen lokálně commit
+"C:\Users\karel.skrabal\Documents\Test1\Source\30410.md"
+
+
+
+
 ----------------------------------------------------------------------------------------
 kontrola commitovaných branches za daný týden
 
