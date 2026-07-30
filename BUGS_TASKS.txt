@@ -1,4 +1,20 @@
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/30617
+User Story 30617: Web - Workflow - automaticky krok pro notifikace u lineárního workflow [CS-476]
+
+počkat až bude schválený Tomíkův PR
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_git/Proconom_Web_App_TS/pullrequest/20797?_a=overview
+
+claude příprava je v 
+Load feature 30113 WF linear automatic step implementation plan
+a také v souboru
+"C:\Users\karel.skrabal\Documents\Test1\Source\User Story 30617 Web - Workflow - automaticky krok pro notifikace u lineárního workflow.md"
+
+
+
+-----------------------------------------------------------------------------------------
+
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/30410/
 User Story 30410: Desktop - Měření - položka - přidání popelnice pro smazání denního/měsíčního záznamu měření a dokumentů
 
