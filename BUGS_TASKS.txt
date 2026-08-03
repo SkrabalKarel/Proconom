@@ -1,4 +1,14 @@
 
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28536/
+User Story 28536: Desktop- Login- pokud zadám špatné přihlašovací údaje vyskočí špatná hláška
+
+"C:\Users\karel.skrabal\Documents\Test1\Source\28536 Desktop- Login- pokud zadám špatné přihlašovací údaje vyskočí špatná hláška.md"
+
+
+------------------------------------------------------------------------------------------------
+
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/30617
 User Story 30617: Web - Workflow - automaticky krok pro notifikace u lineárního workflow [CS-476]
 
