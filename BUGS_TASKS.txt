@@ -1,4 +1,14 @@
 
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/30697/
+28080,30697  Admin panel - Check box na povolení změny vedoucí osoby [CS-234]
+
+
+částečně hotovo, pokračovat dle ...
+"C:\Users\karel.skrabal\Documents\Test1\Source\28080,30697  Admin panel - Check box na povolení změny vedoucí osoby [CS-234].md"
+
+-------------------------------------------------------------------------------------------------
+
+
 
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/28536/
 User Story 28536: Desktop- Login- pokud zadám špatné přihlašovací údaje vyskočí špatná hláška
