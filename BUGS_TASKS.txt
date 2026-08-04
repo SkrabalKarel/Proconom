@@ -1,4 +1,16 @@
 
+
+
+https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/30730/
+Bug 30730: api - manažer staveb - vyskočí chyba při načtení nástěnky u konkrétní stavby
+"C:\Users\karel.skrabal\Documents\Test1\Source\30730 api - manažer staveb - vyskočí chyba při načtení nástěnky u konkrétní stavby.md"
+
+
+
+---------------------------------------------------------------------------------------------
+
+
+
 https://tfs-server.proconom.local/ProconomSW/PROCONOM/_workitems/edit/30697/
 28080,30697  Admin panel - Check box na povolení změny vedoucí osoby [CS-234]
 
